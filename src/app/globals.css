@@ -1,0 +1,92 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap');
+@import "tailwindcss";
+
+:root {
+  --background: #fcfdfa;
+  --foreground: #111a14;
+  
+  /* Luxury Botanical Color System */
+  --brand-forest: #163828;
+  --brand-emerald: #24583f;
+  --brand-sage: #588b71;
+  --brand-lime: #a3cc96;
+  --brand-cream: #f3f6ee;
+  
+  --font-outfit: 'Outfit', sans-serif;
+  --font-inter: 'Inter', sans-serif;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  
+  /* Theme mapping */
+  --color-brand-forest: var(--brand-forest);
+  --color-brand-emerald: var(--brand-emerald);
+  --color-brand-sage: var(--brand-sage);
+  --color-brand-lime: var(--brand-lime);
+  --color-brand-cream: var(--brand-cream);
+  
+  --font-sans: var(--font-inter);
+  --font-heading: var(--font-outfit);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0b110e;
+    --foreground: #f0f4f1;
+    --brand-cream: #141f19;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-inter), system-ui, sans-serif;
+  overflow-x: hidden;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-outfit), var(--font-inter), sans-serif;
+  letter-spacing: -0.02em;
+}
+
+/* Custom premium transitions and visual effects */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.dark .glass-panel {
+  background: rgba(17, 26, 20, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Smooth input styling */
+.premium-input {
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.premium-input:focus ~ label,
+.premium-input:not(:placeholder-shown) ~ label {
+  transform: translateY(-1.25rem) scale(0.85);
+  color: var(--brand-sage);
+}
+
+/* Custom micro-animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
