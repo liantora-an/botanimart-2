@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { User, Mail, Lock, CheckCircle2, AlertCircle, ArrowRight, ShieldCheck } from 'lucide-react';
+import { Eye, EyeOff, Phone, AlertCircle, CheckCircle2, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
 
 export default function RegisterForm() {
@@ -13,7 +13,7 @@ export default function RegisterForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
-  
+
   // Password strength states
   const [passwordStrength, setPasswordStrength] = useState(0);
   const [strengthLabel, setStrengthLabel] = useState('');
@@ -61,7 +61,6 @@ export default function RegisterForm() {
     e.preventDefault();
     setError('');
 
-    // Basic Validations
     if (!fullName || !email || !password || !confirmPassword) {
       setError('Semua kolom wajib diisi.');
       return;
@@ -79,7 +78,6 @@ export default function RegisterForm() {
 
     setIsLoading(true);
 
-    // Simulate API call for registration
     setTimeout(() => {
       setIsLoading(false);
       setSuccess(true);
@@ -87,101 +85,88 @@ export default function RegisterForm() {
   };
 
   return (
-    <div className="w-full max-w-md mx-auto">
-      <div className="text-center mb-8 animate-fade-in-up">
-        <h2 className="text-3xl font-bold font-heading text-brand-forest dark:text-brand-lime mb-2">
-          Buat Akun Baru
-        </h2>
-        <p className="text-zinc-500 dark:text-zinc-400">
-          Bergabunglah dengan Botani Mart dan nikmati kemudahan merawat tanaman impian Anda.
-        </p>
-      </div>
+    <div className="w-full">
+      <h2 className="text-3xl font-bold text-center text-[#1e3329] dark:text-white font-heading mb-6">
+        Daftar
+      </h2>
 
       {error && (
-        <div className="flex items-center gap-3 p-4 mb-6 rounded-xl bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400 text-sm border border-red-100 dark:border-red-950/30 animate-fade-in-up">
-          <AlertCircle className="w-5 h-5 shrink-0" />
+        <div className="flex items-center gap-2.5 p-3.5 mb-5 rounded-2xl bg-red-50/80 dark:bg-red-950/30 text-red-600 dark:text-red-400 text-xs sm:text-sm border border-red-100 dark:border-red-950/20 animate-fade-in-up">
+          <AlertCircle className="w-4.5 h-4.5 shrink-0" />
           <span>{error}</span>
         </div>
       )}
 
       {success && (
-        <div className="flex items-center gap-3 p-4 mb-6 rounded-xl bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400 text-sm border border-emerald-100 dark:border-emerald-950/30 animate-fade-in-up">
-          <CheckCircle2 className="w-5 h-5 shrink-0" />
-          <span>Registrasi berhasil! Mengalihkan ke halaman masuk...</span>
+        <div className="flex items-center gap-2.5 p-3.5 mb-5 rounded-2xl bg-emerald-50/80 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 text-xs sm:text-sm border border-emerald-100 dark:border-emerald-950/20 animate-fade-in-up">
+          <CheckCircle2 className="w-4.5 h-4.5 shrink-0" />
+          <span>Daftar berhasil! Silakan masuk...</span>
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-5 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
+      <form onSubmit={handleSubmit} className="space-y-4">
         {/* Full Name Input */}
-        <div className="relative">
-          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-zinc-400">
-            <User className="w-5 h-5" />
-          </div>
+        <div className="flex flex-col text-left">
+          <label htmlFor="fullName" className="text-sm font-semibold text-[#1e3329] dark:text-zinc-200 mb-1.5 px-1">
+            Nama Lengkap
+          </label>
           <input
             type="text"
             id="fullName"
-            placeholder=" "
+            placeholder="Masukkan nama lengkap anda..."
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
             disabled={isLoading || success}
-            className="peer block w-full pl-12 pr-4 pt-6 pb-2 text-sm text-zinc-900 dark:text-zinc-50 bg-brand-cream/50 dark:bg-brand-cream/5 border border-zinc-200 dark:border-zinc-800 rounded-2xl focus:outline-none focus:border-brand-emerald focus:ring-4 focus:ring-brand-emerald/10 transition-all duration-200 placeholder-transparent"
+            className="w-full px-5 py-3.5 text-sm text-zinc-800 dark:text-zinc-100 bg-white dark:bg-zinc-900 border border-transparent rounded-full shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-emerald focus:border-transparent transition-all"
           />
-          <label
-            htmlFor="fullName"
-            className="absolute left-12 top-4 text-sm text-zinc-400 dark:text-zinc-500 pointer-events-none transition-all duration-200 peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-100 peer-focus:-translate-y-3 peer-focus:scale-75 peer-focus:text-brand-emerald peer-[:not(:placeholder-shown)]:-translate-y-3 peer-[:not(:placeholder-shown)]:scale-75 origin-[0_0]"
-          >
-            Nama Lengkap
-          </label>
         </div>
 
         {/* Email Input */}
-        <div className="relative">
-          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-zinc-400">
-            <Mail className="w-5 h-5" />
-          </div>
+        <div className="flex flex-col text-left">
+          <label htmlFor="email" className="text-sm font-semibold text-[#1e3329] dark:text-zinc-200 mb-1.5 px-1">
+            Email
+          </label>
           <input
             type="email"
             id="email"
-            placeholder=" "
+            placeholder="Masukkan email anda..."
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             disabled={isLoading || success}
-            className="peer block w-full pl-12 pr-4 pt-6 pb-2 text-sm text-zinc-900 dark:text-zinc-50 bg-brand-cream/50 dark:bg-brand-cream/5 border border-zinc-200 dark:border-zinc-800 rounded-2xl focus:outline-none focus:border-brand-emerald focus:ring-4 focus:ring-brand-emerald/10 transition-all duration-200 placeholder-transparent"
+            className="w-full px-5 py-3.5 text-sm text-zinc-800 dark:text-zinc-100 bg-white dark:bg-zinc-900 border border-transparent rounded-full shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-emerald focus:border-transparent transition-all"
           />
-          <label
-            htmlFor="email"
-            className="absolute left-12 top-4 text-sm text-zinc-400 dark:text-zinc-500 pointer-events-none transition-all duration-200 peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-100 peer-focus:-translate-y-3 peer-focus:scale-75 peer-focus:text-brand-emerald peer-[:not(:placeholder-shown)]:-translate-y-3 peer-[:not(:placeholder-shown)]:scale-75 origin-[0_0]"
-          >
-            Alamat Email
-          </label>
         </div>
 
         {/* Password Input */}
-        <div className="relative">
-          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-zinc-400">
-            <Lock className="w-5 h-5" />
-          </div>
-          <input
-            type="password"
-            id="password"
-            placeholder=" "
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            disabled={isLoading || success}
-            className="peer block w-full pl-12 pr-4 pt-6 pb-2 text-sm text-zinc-900 dark:text-zinc-50 bg-brand-cream/50 dark:bg-brand-cream/5 border border-zinc-200 dark:border-zinc-800 rounded-2xl focus:outline-none focus:border-brand-emerald focus:ring-4 focus:ring-brand-emerald/10 transition-all duration-200 placeholder-transparent"
-          />
-          <label
-            htmlFor="password"
-            className="absolute left-12 top-4 text-sm text-zinc-400 dark:text-zinc-500 pointer-events-none transition-all duration-200 peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-100 peer-focus:-translate-y-3 peer-focus:scale-75 peer-focus:text-brand-emerald peer-[:not(:placeholder-shown)]:-translate-y-3 peer-[:not(:placeholder-shown)]:scale-75 origin-[0_0]"
-          >
-            Kata Sandi
+        <div className="flex flex-col text-left relative">
+          <label htmlFor="password" className="text-sm font-semibold text-[#1e3329] dark:text-zinc-200 mb-1.5 px-1">
+            Password
           </label>
+          <div className="relative w-full">
+            <input
+              type={showPassword ? 'text' : 'password'}
+              id="password"
+              placeholder="Min. 8 karakter"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              disabled={isLoading || success}
+              className="w-full pl-5 pr-12 py-3.5 text-sm text-zinc-800 dark:text-zinc-100 bg-white dark:bg-zinc-900 border border-transparent rounded-full shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-emerald focus:border-transparent transition-all"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              disabled={isLoading || success}
+              className="absolute inset-y-0 right-0 pr-5 flex items-center text-zinc-400 hover:text-brand-emerald transition-colors"
+            >
+              {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+            </button>
+          </div>
         </div>
 
         {/* Password Strength Indicator */}
         {password && (
           <div className="px-2 animate-fade-in-up">
-            <div className="flex items-center justify-between text-xs mb-2">
+            <div className="flex items-center justify-between text-xs mb-1.5">
               <span className="text-zinc-500 dark:text-zinc-400 flex items-center gap-1">
                 <ShieldCheck className="w-4 h-4 text-brand-emerald" /> Keamanan Sandi:
               </span>
@@ -189,7 +174,7 @@ export default function RegisterForm() {
                 {strengthLabel}
               </span>
             </div>
-            <div className="grid grid-cols-4 gap-2 h-1.5 w-full bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+            <div className="grid grid-cols-4 gap-1.5 h-1.5 w-full bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
               <div className={`h-full rounded-full transition-all duration-300 ${passwordStrength >= 1 ? strengthColor : 'bg-transparent'}`}></div>
               <div className={`h-full rounded-full transition-all duration-300 ${passwordStrength >= 2 ? strengthColor : 'bg-transparent'}`}></div>
               <div className={`h-full rounded-full transition-all duration-300 ${passwordStrength >= 3 ? strengthColor : 'bg-transparent'}`}></div>
@@ -199,74 +184,86 @@ export default function RegisterForm() {
         )}
 
         {/* Confirm Password Input */}
-        <div className="relative">
-          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-zinc-400">
-            <Lock className="w-5 h-5" />
-          </div>
+        <div className="flex flex-col text-left">
+          <label htmlFor="confirmPassword" className="text-sm font-semibold text-[#1e3329] dark:text-zinc-200 mb-1.5 px-1">
+            Konfirmasi Password
+          </label>
           <input
             type="password"
             id="confirmPassword"
-            placeholder=" "
+            placeholder="Ulangi kata sandi anda..."
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             disabled={isLoading || success}
-            className="peer block w-full pl-12 pr-4 pt-6 pb-2 text-sm text-zinc-900 dark:text-zinc-50 bg-brand-cream/50 dark:bg-brand-cream/5 border border-zinc-200 dark:border-zinc-800 rounded-2xl focus:outline-none focus:border-brand-emerald focus:ring-4 focus:ring-brand-emerald/10 transition-all duration-200 placeholder-transparent"
+            className="w-full px-5 py-3.5 text-sm text-zinc-800 dark:text-zinc-100 bg-white dark:bg-zinc-900 border border-transparent rounded-full shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-emerald focus:border-transparent transition-all"
           />
-          <label
-            htmlFor="confirmPassword"
-            className="absolute left-12 top-4 text-sm text-zinc-400 dark:text-zinc-500 pointer-events-none transition-all duration-200 peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-100 peer-focus:-translate-y-3 peer-focus:scale-75 peer-focus:text-brand-emerald peer-[:not(:placeholder-shown)]:-translate-y-3 peer-[:not(:placeholder-shown)]:scale-75 origin-[0_0]"
+        </div>
+
+        {/* Submit Button */}
+        <div className="pt-2">
+          <button
+            type="submit"
+            disabled={isLoading || success}
+            className="w-full py-4 rounded-full text-white font-semibold bg-[#223e30] hover:bg-[#182e23] dark:bg-brand-emerald dark:hover:bg-brand-sage shadow-md hover:shadow-lg transition-all duration-300 cursor-pointer flex items-center justify-center gap-2"
           >
-            Konfirmasi Kata Sandi
-          </label>
+            {isLoading ? (
+              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+            ) : (
+              'Daftar'
+            )}
+          </button>
         </div>
-
-        {/* Terms and Conditions Checkbox */}
-        <div className="px-1 text-xs sm:text-sm">
-          <label className="flex items-start gap-2.5 cursor-pointer text-zinc-600 dark:text-zinc-400 select-none">
-            <input
-              type="checkbox"
-              required
-              className="mt-1 w-4 h-4 rounded border-zinc-300 dark:border-zinc-700 text-brand-emerald focus:ring-brand-emerald/20 transition-all"
-            />
-            <span>
-              Saya menyetujui{' '}
-              <a href="#" className="font-semibold text-brand-emerald dark:text-brand-sage hover:underline">
-                Syarat & Ketentuan
-              </a>{' '}
-              serta{' '}
-              <a href="#" className="font-semibold text-brand-emerald dark:text-brand-sage hover:underline">
-                Kebijakan Privasi
-              </a>{' '}
-              dari Botani Mart.
-            </span>
-          </label>
-        </div>
-
-        <button
-          type="submit"
-          disabled={isLoading || success}
-          className="relative w-full flex items-center justify-center gap-2 py-4 px-6 rounded-2xl text-white font-medium bg-brand-forest dark:bg-brand-emerald hover:bg-brand-emerald dark:hover:bg-brand-sage disabled:bg-zinc-300 dark:disabled:bg-zinc-800 disabled:text-zinc-500 shadow-lg shadow-brand-forest/10 hover:shadow-xl hover:shadow-brand-emerald/15 transition-all duration-300 cursor-pointer overflow-hidden group"
-        >
-          {isLoading ? (
-            <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-          ) : success ? (
-            'Pendaftaran Berhasil'
-          ) : (
-            <>
-              Daftar Sekarang
-              <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1 duration-300" />
-            </>
-          )}
-        </button>
       </form>
 
-      <div className="mt-8 text-center text-sm text-zinc-500 dark:text-zinc-400 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
+      {/* Social Register Separator */}
+      <div className="mt-6 text-center">
+        <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">
+          Atau Daftar dengan
+        </span>
+        <div className="flex justify-center items-center gap-4 mt-3">
+          {/* Phone Option */}
+          <button
+            type="button"
+            className="w-12 h-12 rounded-full bg-white dark:bg-zinc-900 flex items-center justify-center shadow-md hover:shadow-lg hover:scale-105 active:scale-95 transition-all cursor-pointer"
+          >
+            <Phone className="w-5 h-5 text-zinc-800 dark:text-zinc-200 fill-zinc-800 dark:fill-transparent" />
+          </button>
+          
+          {/* Google Option */}
+          <button
+            type="button"
+            className="w-12 h-12 rounded-full bg-white dark:bg-zinc-900 flex items-center justify-center shadow-md hover:shadow-lg hover:scale-105 active:scale-95 transition-all cursor-pointer"
+          >
+            <svg className="w-5 h-5" viewBox="0 0 24 24">
+              <path
+                fill="#EA4335"
+                d="M12 5.04c1.66 0 3.2.57 4.38 1.69l3.27-3.27C17.68 1.54 14.98 0 12 0 7.35 0 3.37 2.67 1.48 6.56l3.86 3C6.26 6.94 8.89 5.04 12 5.04z"
+              />
+              <path
+                fill="#4285F4"
+                d="M23.49 12.27c0-.81-.07-1.59-.2-2.36H12v4.51h6.44c-.28 1.44-1.09 2.67-2.31 3.49l3.58 2.78c2.1-1.94 3.31-4.79 3.31-8.42z"
+              />
+              <path
+                fill="#FBBC05"
+                d="M5.34 14.56c-.25-.75-.39-1.55-.39-2.36s.14-1.61.39-2.36l-3.86-3C.56 8.54 0 10.21 0 12s.56 3.46 1.48 5.12l3.86-3z"
+              />
+              <path
+                fill="#34A853"
+                d="M12 24c3.24 0 5.97-1.08 7.96-2.91l-3.58-2.78c-1 .67-2.28 1.07-3.96 1.07-3.11 0-5.74-1.9-6.68-4.52l-3.86 3C3.37 21.33 7.35 24 12 24z"
+              />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      {/* Login Link */}
+      <div className="mt-8 text-center text-xs sm:text-sm text-zinc-600 dark:text-zinc-400">
         Sudah memiliki akun?{' '}
         <Link
           href="/login"
-          className="font-semibold text-brand-emerald dark:text-brand-sage hover:underline hover:text-brand-forest dark:hover:text-brand-lime transition-all"
+          className="font-bold text-[#1e3329] dark:text-brand-lime hover:underline transition-all"
         >
-          Masuk di Sini
+          Masuk disini!
         </Link>
       </div>
     </div>
