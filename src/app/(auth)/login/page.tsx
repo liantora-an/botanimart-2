@@ -6,8 +6,8 @@ import { ArrowLeft } from 'lucide-react';
 
 export default function LoginPage() {
   return (
-    <div className="min-h-screen w-full relative flex items-center justify-center p-4 sm:p-6 md:p-8 overflow-y-auto bg-zinc-950">
-      
+    <div className="min-h-screen w-full relative flex items-center justify-center p-4 sm:p-6 md:p-8 overflow-y-auto bg-brand-forest">
+
       {/* 1. Full-screen Background Image */}
       <Image
         src="/images/botanical_auth_bg.png"
@@ -16,10 +16,10 @@ export default function LoginPage() {
         priority
         className="object-cover opacity-90"
       />
-      
+
       {/* 2. Premium Organic Dark Green Tint Overlay */}
-      <div className="absolute inset-0 bg-[#253e32]/85 dark:bg-[#0f1a15]/92 z-10" />
-      
+      <div className="absolute inset-0 bg-brand-forest/80 z-10" />
+
       {/* 3. Top-Left Back Button (Kembali) */}
       <div className="absolute top-6 left-6 md:top-8 md:left-8 z-30">
         <Link
@@ -33,7 +33,7 @@ export default function LoginPage() {
 
       {/* 4. Main Centered Content Container */}
       <div className="relative z-20 w-full max-w-md mx-auto flex flex-col items-center py-12">
-        
+
         {/* Main Header Titles */}
         <div className="text-center text-white mb-6 sm:mb-8 animate-fade-in-up">
           <h1 className="text-3xl sm:text-4xl font-extrabold font-heading mb-2 tracking-tight drop-shadow-sm">
@@ -45,12 +45,12 @@ export default function LoginPage() {
         </div>
 
         {/* Premium Frosted Glassmorphism Card */}
-        <div className="w-full bg-white/20 dark:bg-black/35 backdrop-blur-xl border border-white/25 rounded-[36px] shadow-2xl p-6 sm:p-8 md:p-10 animate-fade-in-up" style={{ animationDelay: '0.05s' }}>
+        <div className="w-full bg-white/40 backdrop-blur-xl border border-white/25 rounded-[36px] shadow-2xl p-6 sm:p-8 md:p-10 animate-fade-in-up" style={{ animationDelay: '0.05s' }}>
           <LoginForm />
         </div>
-        
+
       </div>
-      
+
     </div>
   );
 }

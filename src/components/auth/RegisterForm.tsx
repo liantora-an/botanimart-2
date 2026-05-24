@@ -86,19 +86,19 @@ export default function RegisterForm() {
 
   return (
     <div className="w-full">
-      <h2 className="text-3xl font-bold text-center text-[#1e3329] dark:text-white font-heading mb-6">
+      <h2 className="text-3xl font-bold text-center text-brand-forest font-heading mb-6">
         Daftar
       </h2>
 
       {error && (
-        <div className="flex items-center gap-2.5 p-3.5 mb-5 rounded-2xl bg-red-50/80 dark:bg-red-950/30 text-red-600 dark:text-red-400 text-xs sm:text-sm border border-red-100 dark:border-red-950/20 animate-fade-in-up">
+        <div className="flex items-center gap-2.5 p-3.5 mb-5 rounded-2xl bg-red-50 text-red-600 text-xs sm:text-sm border border-red-100 animate-fade-in-up">
           <AlertCircle className="w-4.5 h-4.5 shrink-0" />
           <span>{error}</span>
         </div>
       )}
 
       {success && (
-        <div className="flex items-center gap-2.5 p-3.5 mb-5 rounded-2xl bg-emerald-50/80 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 text-xs sm:text-sm border border-emerald-100 dark:border-emerald-950/20 animate-fade-in-up">
+        <div className="flex items-center gap-2.5 p-3.5 mb-5 rounded-2xl bg-emerald-50 text-emerald-700 text-xs sm:text-sm border border-emerald-100 animate-fade-in-up">
           <CheckCircle2 className="w-4.5 h-4.5 shrink-0" />
           <span>Daftar berhasil! Silakan masuk...</span>
         </div>
@@ -107,7 +107,7 @@ export default function RegisterForm() {
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Full Name Input */}
         <div className="flex flex-col text-left">
-          <label htmlFor="fullName" className="text-sm font-semibold text-[#1e3329] dark:text-zinc-200 mb-1.5 px-1">
+          <label htmlFor="fullName" className="text-sm font-semibold text-brand-forest mb-1.5 px-1">
             Nama Lengkap
           </label>
           <input
@@ -117,13 +117,13 @@ export default function RegisterForm() {
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
             disabled={isLoading || success}
-            className="w-full px-5 py-3.5 text-sm text-zinc-800 dark:text-zinc-100 bg-white dark:bg-zinc-900 border border-transparent rounded-full shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-emerald focus:border-transparent transition-all"
+            className="w-full px-5 py-3.5 text-sm text-zinc-800 bg-white border border-transparent rounded-full shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-emerald focus:border-transparent transition-all"
           />
         </div>
 
         {/* Email Input */}
         <div className="flex flex-col text-left">
-          <label htmlFor="email" className="text-sm font-semibold text-[#1e3329] dark:text-zinc-200 mb-1.5 px-1">
+          <label htmlFor="email" className="text-sm font-semibold text-brand-forest mb-1.5 px-1">
             Email
           </label>
           <input
@@ -133,13 +133,13 @@ export default function RegisterForm() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             disabled={isLoading || success}
-            className="w-full px-5 py-3.5 text-sm text-zinc-800 dark:text-zinc-100 bg-white dark:bg-zinc-900 border border-transparent rounded-full shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-emerald focus:border-transparent transition-all"
+            className="w-full px-5 py-3.5 text-sm text-zinc-800 bg-white border border-transparent rounded-full shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-emerald focus:border-transparent transition-all"
           />
         </div>
 
         {/* Password Input */}
         <div className="flex flex-col text-left relative">
-          <label htmlFor="password" className="text-sm font-semibold text-[#1e3329] dark:text-zinc-200 mb-1.5 px-1">
+          <label htmlFor="password" className="text-sm font-semibold text-brand-forest mb-1.5 px-1">
             Password
           </label>
           <div className="relative w-full">
@@ -150,7 +150,7 @@ export default function RegisterForm() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               disabled={isLoading || success}
-              className="w-full pl-5 pr-12 py-3.5 text-sm text-zinc-800 dark:text-zinc-100 bg-white dark:bg-zinc-900 border border-transparent rounded-full shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-emerald focus:border-transparent transition-all"
+              className="w-full pl-5 pr-12 py-3.5 text-sm text-zinc-800 bg-white border border-transparent rounded-full shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-emerald focus:border-transparent transition-all"
             />
             <button
               type="button"
@@ -167,14 +167,14 @@ export default function RegisterForm() {
         {password && (
           <div className="px-2 animate-fade-in-up">
             <div className="flex items-center justify-between text-xs mb-1.5">
-              <span className="text-zinc-500 dark:text-zinc-400 flex items-center gap-1">
+              <span className="text-brand-sage flex items-center gap-1">
                 <ShieldCheck className="w-4 h-4 text-brand-emerald" /> Keamanan Sandi:
               </span>
-              <span className={`font-semibold text-zinc-700 dark:text-zinc-300`}>
+              <span className={`font-semibold text-zinc-700`}>
                 {strengthLabel}
               </span>
             </div>
-            <div className="grid grid-cols-4 gap-1.5 h-1.5 w-full bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+            <div className="grid grid-cols-4 gap-1.5 h-1.5 w-full bg-zinc-100 rounded-full overflow-hidden">
               <div className={`h-full rounded-full transition-all duration-300 ${passwordStrength >= 1 ? strengthColor : 'bg-transparent'}`}></div>
               <div className={`h-full rounded-full transition-all duration-300 ${passwordStrength >= 2 ? strengthColor : 'bg-transparent'}`}></div>
               <div className={`h-full rounded-full transition-all duration-300 ${passwordStrength >= 3 ? strengthColor : 'bg-transparent'}`}></div>
@@ -185,7 +185,7 @@ export default function RegisterForm() {
 
         {/* Confirm Password Input */}
         <div className="flex flex-col text-left">
-          <label htmlFor="confirmPassword" className="text-sm font-semibold text-[#1e3329] dark:text-zinc-200 mb-1.5 px-1">
+          <label htmlFor="confirmPassword" className="text-sm font-semibold text-brand-forest mb-1.5 px-1">
             Konfirmasi Password
           </label>
           <input
@@ -195,7 +195,7 @@ export default function RegisterForm() {
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             disabled={isLoading || success}
-            className="w-full px-5 py-3.5 text-sm text-zinc-800 dark:text-zinc-100 bg-white dark:bg-zinc-900 border border-transparent rounded-full shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-emerald focus:border-transparent transition-all"
+            className="w-full px-5 py-3.5 text-sm text-zinc-800 bg-white border border-transparent rounded-full shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-emerald focus:border-transparent transition-all"
           />
         </div>
 
@@ -204,7 +204,7 @@ export default function RegisterForm() {
           <button
             type="submit"
             disabled={isLoading || success}
-            className="w-full py-4 rounded-full text-white font-semibold bg-[#223e30] hover:bg-[#182e23] dark:bg-brand-emerald dark:hover:bg-brand-sage shadow-md hover:shadow-lg transition-all duration-300 cursor-pointer flex items-center justify-center gap-2"
+            className="w-full py-4 rounded-full text-white font-semibold bg-brand-forest hover:bg-brand-emerald shadow-md hover:shadow-lg transition-all duration-300 cursor-pointer flex items-center justify-center gap-2"
           >
             {isLoading ? (
               <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
@@ -217,22 +217,22 @@ export default function RegisterForm() {
 
       {/* Social Register Separator */}
       <div className="mt-6 text-center">
-        <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">
+        <span className="text-xs sm:text-sm text-brand-sage font-medium">
           Atau Daftar dengan
         </span>
         <div className="flex justify-center items-center gap-4 mt-3">
           {/* Phone Option */}
           <button
             type="button"
-            className="w-12 h-12 rounded-full bg-white dark:bg-zinc-900 flex items-center justify-center shadow-md hover:shadow-lg hover:scale-105 active:scale-95 transition-all cursor-pointer"
+            className="w-12 h-12 rounded-full bg-white flex items-center justify-center shadow-md hover:shadow-lg hover:scale-105 active:scale-95 transition-all cursor-pointer"
           >
-            <Phone className="w-5 h-5 text-zinc-800 dark:text-zinc-200 fill-zinc-800 dark:fill-transparent" />
+            <Phone className="w-5 h-5 text-zinc-800 fill-zinc-800" />
           </button>
           
           {/* Google Option */}
           <button
             type="button"
-            className="w-12 h-12 rounded-full bg-white dark:bg-zinc-900 flex items-center justify-center shadow-md hover:shadow-lg hover:scale-105 active:scale-95 transition-all cursor-pointer"
+            className="w-12 h-12 rounded-full bg-white flex items-center justify-center shadow-md hover:shadow-lg hover:scale-105 active:scale-95 transition-all cursor-pointer"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">
               <path
@@ -256,12 +256,11 @@ export default function RegisterForm() {
         </div>
       </div>
 
-      {/* Login Link */}
-      <div className="mt-8 text-center text-xs sm:text-sm text-zinc-600 dark:text-zinc-400">
+      <div className="mt-8 text-center text-xs sm:text-sm text-brand-sage font-medium">
         Sudah memiliki akun?{' '}
         <Link
           href="/login"
-          className="font-bold text-[#1e3329] dark:text-brand-lime hover:underline transition-all"
+          className="font-bold text-brand-forest hover:underline transition-all"
         >
           Masuk disini!
         </Link>

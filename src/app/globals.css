@@ -2,15 +2,15 @@
 @import "tailwindcss";
 
 :root {
-  --background: #fcfdfa;
-  --foreground: #111a14;
+  --background: #ffffff;
+  --foreground: #171717;
   
-  /* Luxury Botanical Color System */
-  --brand-forest: #163828;
-  --brand-emerald: #24583f;
-  --brand-sage: #588b71;
-  --brand-lime: #a3cc96;
-  --brand-cream: #f3f6ee;
+  /* Muted Luxury Botanical Colors (Locked to beautiful Light Mode) */
+  --brand-forest: #274235;
+  --brand-emerald: #345947;
+  --brand-sage: #50685c;
+  --brand-lime: #b8d5c5;
+  --brand-cream: #f4f6f4;
   
   --font-outfit: 'Outfit', sans-serif;
   --font-inter: 'Inter', sans-serif;
@@ -31,19 +31,10 @@
   --font-heading: var(--font-outfit);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0b110e;
-    --foreground: #f0f4f1;
-    --brand-cream: #141f19;
-  }
-}
-
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-inter), system-ui, sans-serif;
-  overflow-x: hidden;
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -53,26 +44,10 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Custom premium transitions and visual effects */
 .glass-panel {
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.25);
-}
-
-.dark .glass-panel {
-  background: rgba(17, 26, 20, 0.65);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-/* Smooth input styling */
-.premium-input {
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.premium-input:focus ~ label,
-.premium-input:not(:placeholder-shown) ~ label {
-  transform: translateY(-1.25rem) scale(0.85);
-  color: var(--brand-sage);
 }
 
 /* Custom micro-animations */
