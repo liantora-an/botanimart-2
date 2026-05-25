@@ -143,7 +143,7 @@ export default function HomePage() {
             <Link href="/toko" className="text-sm font-semibold text-brand-sage hover:text-brand-forest transition-colors">
               Toko
             </Link>
-            <Link href="#kegiatan" className="text-sm font-semibold text-brand-sage hover:text-brand-forest transition-colors">
+            <Link href="/kegiatan" className="text-sm font-semibold text-brand-sage hover:text-brand-forest transition-colors">
               Kegiatan
             </Link>
             <Link href="#informasi" className="text-sm font-semibold text-brand-sage hover:text-brand-forest transition-colors">
@@ -682,7 +682,7 @@ export default function HomePage() {
             </div>
 
             <Link
-              href="#kegiatan"
+              href="/kegiatan"
               className="inline-flex items-center gap-1 text-sm font-bold text-brand-lime hover:text-white transition-all"
             >
               Lihat Semua <ArrowRight className="w-4.5 h-4.5" />

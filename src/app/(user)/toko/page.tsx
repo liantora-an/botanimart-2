@@ -242,7 +242,7 @@ export default function TokoKatalogPage() {
             <Link href="/toko" className="text-sm font-semibold text-brand-emerald border-b-2 border-brand-emerald pb-1 transition-all">
               Toko
             </Link>
-            <Link href="#kegiatan" className="text-sm font-semibold text-brand-sage hover:text-brand-forest transition-colors">
+            <Link href="/kegiatan" className="text-sm font-semibold text-brand-sage hover:text-brand-forest transition-colors">
               Kegiatan
             </Link>
             <Link href="#informasi" className="text-sm font-semibold text-brand-sage hover:text-brand-forest transition-colors">
