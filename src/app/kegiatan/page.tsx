@@ -1,14 +1,14 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { 
-  Search, 
-  ShoppingBag, 
-  Heart, 
-  ArrowLeft, 
-  Calendar, 
-  User, 
-  Leaf, 
+import {
+  Search,
+  ShoppingBag,
+  Heart,
+  ArrowLeft,
+  Calendar,
+  User,
+  Leaf,
   ArrowRight,
   ChevronLeft,
   ChevronRight,
@@ -119,10 +119,10 @@ export default function KegiatanPage() {
   // Global states
   const [cartCount, setCartCount] = useState(2);
   const [wishlist, setWishlist] = useState<Record<number, boolean>>({});
-  
+
   // Interactive View States
   const [selectedActivity, setSelectedActivity] = useState<typeof ACTIVITIES[0] | null>(null);
-  
+
   // Search & Tab Filters States
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<'Semua' | 'Terbaru' | 'Terpopuler' | 'Disimpan'>('Semua');
@@ -162,11 +162,11 @@ export default function KegiatanPage() {
 
   return (
     <div className="flex flex-col min-h-screen bg-[#fcfdfc] font-sans antialiased text-[#274235]">
-      
+
       {/* 1. Header/Navbar */}
       <header className="sticky top-0 z-50 w-full backdrop-blur-md bg-white/80 border-b border-[#e2ede7] transition-all duration-300">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-          
+
           {/* Logo (logo_v4.png) */}
           <Link href="/" className="flex items-center group">
             <div className="relative w-64 h-16 transition-all duration-300 group-hover:scale-102">
@@ -202,7 +202,7 @@ export default function KegiatanPage() {
           {/* Right Action Icons */}
           <div className="flex items-center gap-4">
             {/* Wishlist Icon */}
-            <button 
+            <button
               className="p-2.5 rounded-full hover:bg-brand-cream text-brand-sage hover:text-brand-forest transition-all"
               onClick={() => alert('Fitur Wishlist sedang dikembangkan!')}
             >
@@ -210,7 +210,7 @@ export default function KegiatanPage() {
             </button>
 
             {/* Shopping Cart */}
-            <button 
+            <button
               className="p-2.5 rounded-full hover:bg-brand-cream text-brand-sage hover:text-brand-forest transition-all relative"
               onClick={() => alert('Fitur Keranjang sedang dikembangkan!')}
             >
@@ -223,8 +223,8 @@ export default function KegiatanPage() {
             </button>
 
             {/* Login Button */}
-            <Link 
-              href="/login" 
+            <Link
+              href="/login"
               className="hidden sm:inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full bg-brand-emerald hover:bg-brand-forest text-white text-xs font-bold shadow-md hover:shadow-lg transition-all duration-300"
             >
               Daftar/Masuk
@@ -235,11 +235,11 @@ export default function KegiatanPage() {
 
       {/* Main Content Area */}
       <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in-up">
-        
+
         {/* CONDITION 1: ACTIVITIES LIST VIEW (Daftar Kegiatan) */}
         {!selectedActivity ? (
           <div className="space-y-8">
-            
+
             {/* Header Banner (Blank/Empty Background, soft green as Placeholder per instruction) */}
             <div className="relative rounded-3xl overflow-hidden py-16 px-8 sm:px-12 text-center bg-gradient-to-r from-brand-forest/95 via-brand-emerald/90 to-brand-forest/95 shadow-lg border border-brand-emerald/10 select-none">
               <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(52,89,71,0.2),transparent)] z-0" />
@@ -273,11 +273,10 @@ export default function KegiatanPage() {
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`pb-3 text-base sm:text-lg font-heading font-bold transition-all border-b-3 px-1 cursor-pointer ${
-                    activeTab === tab 
-                      ? 'text-brand-emerald border-brand-emerald scale-102' 
-                      : 'text-brand-sage border-transparent hover:text-brand-forest'
-                  }`}
+                  className={`pb-3 text-base sm:text-lg font-heading font-bold transition-all border-b-3 px-1 cursor-pointer ${activeTab === tab
+                    ? 'text-brand-emerald border-brand-emerald scale-102'
+                    : 'text-brand-sage border-transparent hover:text-brand-forest'
+                    }`}
                 >
                   {tab}
                 </button>
@@ -325,7 +324,7 @@ export default function KegiatanPage() {
                         <User className="w-3.5 h-3.5" />
                         <span>{activity.author}</span>
                       </div>
-                      
+
                       <h3 className="font-heading font-extrabold text-lg text-[#1e3329] group-hover:text-brand-emerald transition-colors leading-tight">
                         {activity.title}
                       </h3>
@@ -347,23 +346,22 @@ export default function KegiatanPage() {
 
             {/* Pagination dinamis matching mockup (<- 1 2 3 ... 10 ->) */}
             <div className="flex justify-center items-center gap-2 pt-8 select-none">
-              <button 
+              <button
                 onClick={() => currentPage > 1 && setCurrentPage(prev => prev - 1)}
                 className="w-10 h-10 rounded-full border border-[#e2ede7] hover:bg-brand-cream flex items-center justify-center text-brand-sage transition-colors cursor-pointer"
                 aria-label="Sebelumnya"
               >
                 <ChevronLeft className="w-5 h-5" />
               </button>
-              
+
               {[1, 2, 3].map(page => (
                 <button
                   key={page}
                   onClick={() => setCurrentPage(page)}
-                  className={`w-10 h-10 rounded-full text-sm font-bold transition-all cursor-pointer ${
-                    currentPage === page 
-                      ? 'bg-brand-forest text-white shadow-md' 
-                      : 'border border-[#e2ede7] hover:bg-brand-cream text-brand-sage'
-                  }`}
+                  className={`w-10 h-10 rounded-full text-sm font-bold transition-all cursor-pointer ${currentPage === page
+                    ? 'bg-brand-forest text-white shadow-md'
+                    : 'border border-[#e2ede7] hover:bg-brand-cream text-brand-sage'
+                    }`}
                 >
                   {page}
                 </button>
@@ -373,16 +371,15 @@ export default function KegiatanPage() {
 
               <button
                 onClick={() => setCurrentPage(10)}
-                className={`w-10 h-10 rounded-full text-sm font-bold transition-all cursor-pointer ${
-                  currentPage === 10 
-                    ? 'bg-brand-forest text-white shadow-md' 
-                    : 'border border-[#e2ede7] hover:bg-brand-cream text-brand-sage'
-                }`}
+                className={`w-10 h-10 rounded-full text-sm font-bold transition-all cursor-pointer ${currentPage === 10
+                  ? 'bg-brand-forest text-white shadow-md'
+                  : 'border border-[#e2ede7] hover:bg-brand-cream text-brand-sage'
+                  }`}
               >
                 10
               </button>
 
-              <button 
+              <button
                 onClick={() => currentPage < 10 && setCurrentPage(prev => prev + 1)}
                 className="w-10 h-10 rounded-full border border-[#e2ede7] hover:bg-brand-cream flex items-center justify-center text-brand-sage transition-colors cursor-pointer"
                 aria-label="Selanjutnya"
@@ -393,13 +390,13 @@ export default function KegiatanPage() {
 
           </div>
         ) : (
-          
+
           /* CONDITION 2: ACTIVITY DETAIL ARTICLE VIEW (Laman Detail Baca) */
           <div className="space-y-12 animate-fade-in-up">
-            
+
             {/* Action Bar (Kembali) */}
             <div className="flex justify-between items-center border-b border-[#e2ede7] pb-4">
-              <button 
+              <button
                 onClick={() => setSelectedActivity(null)}
                 className="inline-flex items-center gap-2 text-sm font-bold text-brand-emerald hover:text-brand-forest transition-colors cursor-pointer"
               >
@@ -408,7 +405,7 @@ export default function KegiatanPage() {
               </button>
 
               <div className="flex gap-3">
-                <button 
+                <button
                   onClick={() => {
                     toggleBookmark(selectedActivity.id);
                     alert(wishlist[selectedActivity.id] ? 'Dihapus dari simpanan!' : 'Berhasil disimpan!');
@@ -418,7 +415,7 @@ export default function KegiatanPage() {
                 >
                   <Bookmark className={`w-4.5 h-4.5 ${wishlist[selectedActivity.id] ? 'fill-brand-emerald text-brand-emerald' : ''}`} />
                 </button>
-                <button 
+                <button
                   onClick={() => alert('Fitur bagikan sedang disiapkan!')}
                   className="p-2.5 rounded-full border border-[#e2ede7] hover:bg-brand-cream text-brand-sage hover:text-brand-forest transition-all cursor-pointer"
                   aria-label="Bagikan"
@@ -430,7 +427,7 @@ export default function KegiatanPage() {
 
             {/* Article Content Layout */}
             <div className="max-w-4xl mx-auto space-y-6 text-left">
-              
+
               {/* Category, Date & Meta info */}
               <div className="space-y-4">
                 <span className="inline-flex px-3 py-1 rounded-full bg-brand-emerald/10 border border-brand-emerald/20 text-brand-emerald text-xs font-bold uppercase tracking-wider">
@@ -477,7 +474,7 @@ export default function KegiatanPage() {
 
             {/* Related Activities Section at the bottom */}
             <div className="border-t border-[#e2ede7] pt-12 space-y-8">
-              
+
               {/* Header row */}
               <div className="flex items-end justify-between">
                 <h3 className="font-heading font-black text-2xl text-brand-forest">
@@ -511,11 +508,11 @@ export default function KegiatanPage() {
                         <Calendar className="w-3 h-3" />
                         <span>{related.date}</span>
                       </div>
-                      
+
                       <h4 className="font-heading font-extrabold text-base text-[#1e3329] group-hover:text-brand-emerald transition-colors leading-tight">
                         {related.title}
                       </h4>
-                      
+
                       <p className="text-[11px] text-brand-sage leading-relaxed font-medium line-clamp-2">
                         {related.summary}
                       </p>
@@ -534,7 +531,7 @@ export default function KegiatanPage() {
       {/* Footer */}
       <footer className="bg-brand-cream border-t border-[#e2ede7] py-12 text-center mt-12" id="kontak">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col items-center space-y-6">
-          
+
           {/* Footer Logo */}
           <div className="relative w-56 h-14 select-none">
             <NextImage
@@ -548,10 +545,10 @@ export default function KegiatanPage() {
           {/* Social Media Link Icons with Real Brand Colors */}
           <div className="flex gap-6 items-center justify-center">
             {/* TikTok */}
-            <a 
-              href="https://tiktok.com" 
-              target="_blank" 
-              rel="noopener noreferrer" 
+            <a
+              href="https://tiktok.com"
+              target="_blank"
+              rel="noopener noreferrer"
               className="w-12 h-12 rounded-full bg-white hover:scale-110 active:scale-95 shadow-md flex items-center justify-center group transition-all duration-300"
               aria-label="Botani Mart di TikTok"
             >
@@ -561,10 +558,10 @@ export default function KegiatanPage() {
             </a>
 
             {/* Instagram */}
-            <a 
-              href="https://instagram.com" 
-              target="_blank" 
-              rel="noopener noreferrer" 
+            <a
+              href="https://instagram.com"
+              target="_blank"
+              rel="noopener noreferrer"
               className="w-12 h-12 rounded-full bg-white hover:scale-110 active:scale-95 shadow-md flex items-center justify-center group transition-all duration-300 relative overflow-hidden"
               aria-label="Botani Mart di Instagram"
             >
@@ -575,10 +572,10 @@ export default function KegiatanPage() {
             </a>
 
             {/* WhatsApp */}
-            <a 
-              href="https://wa.me/6281234567890" 
-              target="_blank" 
-              rel="noopener noreferrer" 
+            <a
+              href="https://wa.me/6281234567890"
+              target="_blank"
+              rel="noopener noreferrer"
               className="w-12 h-12 rounded-full bg-white hover:scale-110 active:scale-95 shadow-md flex items-center justify-center group transition-all duration-300 relative overflow-hidden"
               aria-label="Botani Mart di WhatsApp"
             >
