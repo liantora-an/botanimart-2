@@ -1,17 +1,17 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { 
-  Search, 
-  ShoppingBag, 
-  MapPin, 
-  Phone, 
-  ChevronLeft, 
-  ChevronRight, 
-  Star, 
-  Heart, 
-  ArrowLeft, 
-  Plus, 
+import {
+  Search,
+  ShoppingBag,
+  MapPin,
+  Phone,
+  ChevronLeft,
+  ChevronRight,
+  Star,
+  Heart,
+  ArrowLeft,
+  Plus,
   Minus,
   Sparkles,
   Leaf,
@@ -145,17 +145,17 @@ export default function TokoKatalogPage() {
   // Navigation & Cart States
   const [cartCount, setCartCount] = useState(2);
   const [wishlist, setWishlist] = useState<Record<number, boolean>>({});
-  
+
   // Interactive View States
   const [selectedProduct, setSelectedProduct] = useState<typeof PRODUCTS[0] | null>(null);
-  
+
   // Search & Filtering States
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<'Semua' | 'Terbaru' | 'Best Seller'>('Semua');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [priceSort, setPriceSort] = useState('');
   const [methodFilter, setMethodFilter] = useState('');
-  
+
   // Detail View States
   const [quantity, setQuantity] = useState(3); // Default count matching detail mockup
   const [activeDetailTab, setActiveDetailTab] = useState<'deskripsi' | 'review'>('deskripsi');
@@ -216,11 +216,11 @@ export default function TokoKatalogPage() {
 
   return (
     <div className="flex flex-col min-h-screen bg-[#fcfdfc] font-sans antialiased text-[#274235]">
-      
+
       {/* 1. Header/Navbar */}
       <header className="sticky top-0 z-50 w-full backdrop-blur-md bg-white/80 border-b border-[#e2ede7] transition-all duration-300">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-          
+
           {/* Logo (Cropped Transparent logo_v4.png) */}
           <Link href="/" className="flex items-center group">
             <div className="relative w-64 h-16 transition-all duration-300 group-hover:scale-102">
@@ -256,7 +256,7 @@ export default function TokoKatalogPage() {
           {/* Right Action Icons */}
           <div className="flex items-center gap-4">
             {/* Wishlist Link Icon */}
-            <button 
+            <button
               className="p-2.5 rounded-full hover:bg-brand-cream text-brand-sage hover:text-brand-forest transition-all relative"
               aria-label="Wishlist"
               onClick={() => alert('Fitur Wishlist sedang dikembangkan!')}
@@ -265,7 +265,7 @@ export default function TokoKatalogPage() {
             </button>
 
             {/* Shopping Cart */}
-            <button 
+            <button
               className="p-2.5 rounded-full hover:bg-brand-cream text-brand-sage hover:text-brand-forest transition-all relative"
               aria-label="Keranjang Belanja"
               onClick={() => alert('Fitur Keranjang Belanja sedang dikembangkan!')}
@@ -279,8 +279,8 @@ export default function TokoKatalogPage() {
             </button>
 
             {/* Area Admin / Daftar Masuk Button */}
-            <Link 
-              href="/login" 
+            <Link
+              href="/login"
               className="hidden sm:inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full bg-brand-emerald hover:bg-brand-forest text-white text-xs font-bold shadow-md hover:shadow-lg transition-all duration-300"
             >
               Daftar/Masuk
@@ -291,11 +291,11 @@ export default function TokoKatalogPage() {
 
       {/* Main App Container */}
       <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in-up">
-        
+
         {/* CONDITION 1: CATALOG VIEW (Daftar Produk) */}
         {!selectedProduct ? (
           <div className="space-y-8">
-            
+
             {/* Toko/Shop Header Banner (Blank/Empty Background, solid soft green as Placeholder per instruction) */}
             <div className="relative rounded-3xl overflow-hidden py-16 px-8 sm:px-12 text-center bg-gradient-to-r from-brand-forest/95 via-brand-emerald/90 to-brand-forest/95 shadow-lg border border-brand-emerald/10 select-none">
               <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(52,89,71,0.2),transparent)] z-0" />
@@ -329,11 +329,10 @@ export default function TokoKatalogPage() {
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`pb-3 text-base sm:text-lg font-heading font-bold transition-all border-b-3 px-1 cursor-pointer ${
-                    activeTab === tab 
-                      ? 'text-brand-emerald border-brand-emerald scale-102' 
-                      : 'text-brand-sage border-transparent hover:text-brand-forest'
-                  }`}
+                  className={`pb-3 text-base sm:text-lg font-heading font-bold transition-all border-b-3 px-1 cursor-pointer ${activeTab === tab
+                    ? 'text-brand-emerald border-brand-emerald scale-102'
+                    : 'text-brand-sage border-transparent hover:text-brand-forest'
+                    }`}
                 >
                   {tab}
                 </button>
@@ -342,7 +341,7 @@ export default function TokoKatalogPage() {
 
             {/* Dropdown Filters row */}
             <div className="grid sm:grid-cols-3 gap-4 max-w-4xl mx-auto">
-              
+
               {/* Category Dropdown */}
               <div className="flex flex-col text-left">
                 <select
@@ -401,13 +400,13 @@ export default function TokoKatalogPage() {
                     className="absolute top-4 right-4 z-20 w-9 h-9 rounded-full bg-white/90 hover:bg-white shadow-sm flex items-center justify-center text-zinc-400 hover:text-red-500 transition-colors cursor-pointer"
                     aria-label="Simpan ke Wishlist"
                   >
-                    <Heart 
-                      className={`w-4.5 h-4.5 transition-all ${wishlist[product.id] ? 'fill-red-500 text-red-500 scale-110' : 'text-zinc-400'}`} 
+                    <Heart
+                      className={`w-4.5 h-4.5 transition-all ${wishlist[product.id] ? 'fill-red-500 text-red-500 scale-110' : 'text-zinc-400'}`}
                     />
                   </button>
 
                   {/* Empty Image Container / Placeholder (No Plant Images per instruction) */}
-                  <div 
+                  <div
                     className="h-56 w-full bg-brand-cream border-b border-[#e2ede7] flex flex-col items-center justify-center text-brand-sage select-none"
                   >
                     <div className="w-12 h-12 rounded-full bg-white/80 flex items-center justify-center text-brand-sage shadow-inner mb-2 group-hover:scale-105 transition-transform duration-300">
@@ -421,13 +420,13 @@ export default function TokoKatalogPage() {
                     <span className="text-[10px] font-bold text-brand-sage tracking-wider uppercase">
                       {product.category}
                     </span>
-                    
-                    <h3 
+
+                    <h3
                       className="font-heading font-extrabold text-base text-[#1e3329] group-hover:text-brand-emerald transition-colors"
                     >
                       {product.name}
                     </h3>
-                    
+
                     <div className="text-base font-bold text-brand-emerald">
                       Rp. {product.price.toLocaleString('id-ID')}
                     </div>
@@ -463,23 +462,22 @@ export default function TokoKatalogPage() {
 
             {/* Pagination dinamis matching mockup (<- 1 2 3 ... 10 ->) */}
             <div className="flex justify-center items-center gap-2 pt-8 select-none">
-              <button 
+              <button
                 onClick={() => currentPage > 1 && setCurrentPage(prev => prev - 1)}
                 className="w-10 h-10 rounded-full border border-[#e2ede7] hover:bg-brand-cream flex items-center justify-center text-brand-sage transition-colors cursor-pointer"
                 aria-label="Halaman Sebelumnya"
               >
                 <ChevronLeft className="w-5 h-5" />
               </button>
-              
+
               {[1, 2, 3].map(page => (
                 <button
                   key={page}
                   onClick={() => setCurrentPage(page)}
-                  className={`w-10 h-10 rounded-full text-sm font-bold transition-all cursor-pointer ${
-                    currentPage === page 
-                      ? 'bg-brand-forest text-white shadow-md' 
-                      : 'border border-[#e2ede7] hover:bg-brand-cream text-brand-sage'
-                  }`}
+                  className={`w-10 h-10 rounded-full text-sm font-bold transition-all cursor-pointer ${currentPage === page
+                    ? 'bg-brand-forest text-white shadow-md'
+                    : 'border border-[#e2ede7] hover:bg-brand-cream text-brand-sage'
+                    }`}
                 >
                   {page}
                 </button>
@@ -489,16 +487,15 @@ export default function TokoKatalogPage() {
 
               <button
                 onClick={() => setCurrentPage(10)}
-                className={`w-10 h-10 rounded-full text-sm font-bold transition-all cursor-pointer ${
-                  currentPage === 10 
-                    ? 'bg-brand-forest text-white shadow-md' 
-                    : 'border border-[#e2ede7] hover:bg-brand-cream text-brand-sage'
-                }`}
+                className={`w-10 h-10 rounded-full text-sm font-bold transition-all cursor-pointer ${currentPage === 10
+                  ? 'bg-brand-forest text-white shadow-md'
+                  : 'border border-[#e2ede7] hover:bg-brand-cream text-brand-sage'
+                  }`}
               >
                 10
               </button>
 
-              <button 
+              <button
                 onClick={() => currentPage < 10 && setCurrentPage(prev => prev + 1)}
                 className="w-10 h-10 rounded-full border border-[#e2ede7] hover:bg-brand-cream flex items-center justify-center text-brand-sage transition-colors cursor-pointer"
                 aria-label="Halaman Selanjutnya"
@@ -509,13 +506,13 @@ export default function TokoKatalogPage() {
 
           </div>
         ) : (
-          
+
           /* CONDITION 2: DETAIL VIEW (Detail Produk) */
           <div className="space-y-12 animate-fade-in-up">
-            
+
             {/* Top Back Action Bar (Kembali) */}
             <div className="flex justify-between items-center border-b border-[#e2ede7] pb-4">
-              <button 
+              <button
                 onClick={() => setSelectedProduct(null)}
                 className="inline-flex items-center gap-2 text-sm font-bold text-brand-emerald hover:text-brand-forest transition-colors cursor-pointer"
               >
@@ -537,10 +534,10 @@ export default function TokoKatalogPage() {
 
             {/* Main Detail Columns */}
             <div className="grid lg:grid-cols-12 gap-12">
-              
+
               {/* Kolom Kiri: Visual Gambar Placeholder */}
               <div className="lg:col-span-5 space-y-4">
-                
+
                 {/* Large Main Placeholder Container */}
                 <div className="aspect-square w-full rounded-3xl bg-brand-cream border border-[#e2ede7] flex flex-col items-center justify-center text-brand-sage shadow-sm relative overflow-hidden">
                   <div className="absolute inset-0 bg-gradient-to-br from-brand-lime/10 to-brand-cream z-0" />
@@ -554,11 +551,10 @@ export default function TokoKatalogPage() {
                     <button
                       key={idx}
                       onClick={() => setSelectedThumbnail(idx)}
-                      className={`aspect-square w-full rounded-2xl border flex flex-col items-center justify-center text-[10px] text-brand-sage/60 font-bold transition-all relative overflow-hidden cursor-pointer ${
-                        selectedThumbnail === idx 
-                          ? 'border-brand-emerald bg-brand-cream/80 ring-2 ring-brand-emerald/10' 
-                          : 'border-[#e2ede7] bg-brand-cream hover:bg-brand-cream/60'
-                      }`}
+                      className={`aspect-square w-full rounded-2xl border flex flex-col items-center justify-center text-[10px] text-brand-sage/60 font-bold transition-all relative overflow-hidden cursor-pointer ${selectedThumbnail === idx
+                        ? 'border-brand-emerald bg-brand-cream/80 ring-2 ring-brand-emerald/10'
+                        : 'border-[#e2ede7] bg-brand-cream hover:bg-brand-cream/60'
+                        }`}
                     >
                       <Leaf className="w-5 h-5 opacity-30 mb-1" />
                       <span>{thumb}</span>
@@ -573,7 +569,7 @@ export default function TokoKatalogPage() {
                   <span className="inline-flex px-3 py-1 rounded-full bg-brand-emerald/10 border border-brand-emerald/20 text-brand-emerald text-xs font-bold tracking-wider uppercase">
                     {selectedProduct.category}
                   </span>
-                  
+
                   <h1 className="font-heading font-black text-3xl sm:text-4xl text-brand-forest tracking-tight">
                     {selectedProduct.name}
                   </h1>
@@ -598,7 +594,7 @@ export default function TokoKatalogPage() {
                 <div className="space-y-3">
                   <div className="flex items-center gap-3">
                     <span className="text-xs font-extrabold text-brand-sage uppercase tracking-widest w-24">Pengambilan</span>
-                    
+
                     <div className="flex flex-wrap gap-2 text-xs font-bold">
                       <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-brand-cream border border-[#e2ede7] text-brand-forest">
                         🚚 Dikirim (Tiba dalam 2-3 jam)
@@ -618,21 +614,21 @@ export default function TokoKatalogPage() {
                   {/* Quantity Counter */}
                   <div className="flex items-center gap-3 pt-2">
                     <span className="text-xs font-extrabold text-brand-sage uppercase tracking-widest w-24">Kuantitas</span>
-                    
+
                     <div className="flex items-center border border-[#e2ede7] rounded-xl overflow-hidden bg-white shadow-sm shrink-0">
-                      <button 
+                      <button
                         onClick={() => quantity > 1 && setQuantity(prev => prev - 1)}
                         className="p-3 hover:bg-brand-cream text-brand-sage hover:text-brand-forest transition-colors cursor-pointer"
                         aria-label="Kurangi"
                       >
                         <Minus className="w-4 h-4" />
                       </button>
-                      
+
                       <span className="w-12 text-center text-sm font-bold text-brand-forest">
                         {quantity}
                       </span>
-                      
-                      <button 
+
+                      <button
                         onClick={() => quantity < selectedProduct.stock && setQuantity(prev => prev + 1)}
                         className="p-3 hover:bg-brand-cream text-brand-sage hover:text-brand-forest transition-colors cursor-pointer"
                         aria-label="Tambah"
@@ -670,26 +666,24 @@ export default function TokoKatalogPage() {
 
             {/* Description & Review Tabs (Middle Section) */}
             <div className="border-t border-[#e2ede7] pt-8 space-y-6">
-              
+
               {/* Tabs list */}
               <div className="flex gap-8 border-b border-[#e2ede7] pb-1">
                 <button
                   onClick={() => setActiveDetailTab('deskripsi')}
-                  className={`pb-3 text-lg font-heading font-bold transition-all border-b-3 px-1 cursor-pointer ${
-                    activeDetailTab === 'deskripsi' 
-                      ? 'text-brand-emerald border-brand-emerald' 
-                      : 'text-brand-sage border-transparent hover:text-brand-forest'
-                  }`}
+                  className={`pb-3 text-lg font-heading font-bold transition-all border-b-3 px-1 cursor-pointer ${activeDetailTab === 'deskripsi'
+                    ? 'text-brand-emerald border-brand-emerald'
+                    : 'text-brand-sage border-transparent hover:text-brand-forest'
+                    }`}
                 >
                   Deskripsi
                 </button>
                 <button
                   onClick={() => setActiveDetailTab('review')}
-                  className={`pb-3 text-lg font-heading font-bold transition-all border-b-3 px-1 cursor-pointer ${
-                    activeDetailTab === 'review' 
-                      ? 'text-brand-emerald border-brand-emerald' 
-                      : 'text-brand-sage border-transparent hover:text-brand-forest'
-                  }`}
+                  className={`pb-3 text-lg font-heading font-bold transition-all border-b-3 px-1 cursor-pointer ${activeDetailTab === 'review'
+                    ? 'text-brand-emerald border-brand-emerald'
+                    : 'text-brand-sage border-transparent hover:text-brand-forest'
+                    }`}
                 >
                   Review
                 </button>
@@ -741,7 +735,7 @@ export default function TokoKatalogPage() {
 
             {/* Recommendations Section (Rekomendasi Lain) */}
             <div className="border-t border-[#e2ede7] pt-12 space-y-8">
-              
+
               {/* Header row */}
               <div className="flex items-end justify-between">
                 <h3 className="font-heading font-black text-2xl text-brand-forest">
@@ -772,13 +766,13 @@ export default function TokoKatalogPage() {
                       className="absolute top-4 right-4 z-20 w-9 h-9 rounded-full bg-white/90 hover:bg-white shadow-sm flex items-center justify-center text-zinc-400 hover:text-red-500 transition-colors cursor-pointer"
                       aria-label="Simpan ke Wishlist"
                     >
-                      <Heart 
-                        className={`w-4.5 h-4.5 transition-all ${wishlist[recommendation.id] ? 'fill-red-500 text-red-500 scale-110' : 'text-zinc-400'}`} 
+                      <Heart
+                        className={`w-4.5 h-4.5 transition-all ${wishlist[recommendation.id] ? 'fill-red-500 text-red-500 scale-110' : 'text-zinc-400'}`}
                       />
                     </button>
 
                     {/* Empty image block placeholder */}
-                    <div 
+                    <div
                       className="h-44 w-full bg-brand-cream border-b border-[#e2ede7] flex flex-col items-center justify-center text-brand-sage select-none"
                     >
                       <Leaf className="w-5 h-5 opacity-40 mb-1 rotate-12" />
@@ -790,13 +784,13 @@ export default function TokoKatalogPage() {
                       <span className="text-[9px] font-bold text-brand-sage tracking-wider uppercase">
                         {recommendation.category}
                       </span>
-                      
-                      <h4 
+
+                      <h4
                         className="font-heading font-extrabold text-sm text-[#1e3329] group-hover:text-brand-emerald transition-colors"
                       >
                         {recommendation.name}
                       </h4>
-                      
+
                       <div className="text-sm font-bold text-brand-emerald">
                         Rp. {recommendation.price.toLocaleString('id-ID')}
                       </div>
@@ -840,7 +834,7 @@ export default function TokoKatalogPage() {
       {/* Footer */}
       <footer className="bg-brand-cream border-t border-[#e2ede7] py-12 text-center mt-12" id="kontak">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col items-center space-y-6">
-          
+
           {/* Footer Logo (using cropped transparent v4 logo) */}
           <div className="relative w-56 h-14 select-none">
             <NextImage
@@ -854,10 +848,10 @@ export default function TokoKatalogPage() {
           {/* Social Media Link Icons with Real Brand Colors */}
           <div className="flex gap-6 items-center justify-center">
             {/* TikTok */}
-            <a 
-              href="https://tiktok.com" 
-              target="_blank" 
-              rel="noopener noreferrer" 
+            <a
+              href="https://tiktok.com"
+              target="_blank"
+              rel="noopener noreferrer"
               className="w-12 h-12 rounded-full bg-white hover:scale-110 active:scale-95 shadow-md flex items-center justify-center group transition-all duration-300"
               aria-label="Botani Mart di TikTok"
             >
@@ -867,10 +861,10 @@ export default function TokoKatalogPage() {
             </a>
 
             {/* Instagram */}
-            <a 
-              href="https://instagram.com" 
-              target="_blank" 
-              rel="noopener noreferrer" 
+            <a
+              href="https://instagram.com"
+              target="_blank"
+              rel="noopener noreferrer"
               className="w-12 h-12 rounded-full bg-white hover:scale-110 active:scale-95 shadow-md flex items-center justify-center group transition-all duration-300 relative overflow-hidden"
               aria-label="Botani Mart di Instagram"
             >
@@ -881,10 +875,10 @@ export default function TokoKatalogPage() {
             </a>
 
             {/* WhatsApp */}
-            <a 
-              href="https://wa.me/6281234567890" 
-              target="_blank" 
-              rel="noopener noreferrer" 
+            <a
+              href="https://wa.me/6281234567890"
+              target="_blank"
+              rel="noopener noreferrer"
               className="w-12 h-12 rounded-full bg-white hover:scale-110 active:scale-95 shadow-md flex items-center justify-center group transition-all duration-300 relative overflow-hidden"
               aria-label="Botani Mart di WhatsApp"
             >
