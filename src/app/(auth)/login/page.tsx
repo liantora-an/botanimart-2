@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import LoginForm from '@/components/auth/LoginForm';
@@ -46,7 +46,9 @@ export default function LoginPage() {
 
         {/* Premium Frosted Glassmorphism Card */}
         <div className="w-full bg-white/40 backdrop-blur-xl border border-white/25 rounded-[36px] shadow-2xl p-6 sm:p-8 md:p-10 animate-fade-in-up" style={{ animationDelay: '0.05s' }}>
-          <LoginForm />
+          <Suspense fallback={<div className="flex justify-center py-8"><div className="w-6 h-6 border-2 border-brand-emerald/30 border-t-brand-emerald rounded-full animate-spin" /></div>}>
+            <LoginForm />
+          </Suspense>
         </div>
 
       </div>

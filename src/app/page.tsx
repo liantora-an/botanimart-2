@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import NextImage from 'next/image';
+import AuthButton from '@/components/layout/AuthButton';
 
 // Mock Categories
 const CATEGORIES = [
@@ -198,13 +199,8 @@ export default function HomePage() {
               )}
             </Link>
 
-            {/* Area Admin Button */}
-            <Link
-              href="/admin"
-              className="hidden sm:inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full bg-brand-emerald hover:bg-brand-forest text-white text-xs font-bold shadow-md hover:shadow-lg transition-all duration-300"
-            >
-              Area Admin
-            </Link>
+            {/* Auth Button (Login or Profile) */}
+            <AuthButton />
           </div>
         </div>
       </header>

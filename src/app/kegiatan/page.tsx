@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Search,
   ShoppingBag,
@@ -16,10 +16,15 @@ import {
   Share2,
   Clock,
   Sparkles,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Edit3,
+  Save,
+  Upload,
+  X
 } from 'lucide-react';
 import Link from 'next/link';
 import NextImage from 'next/image';
+import AuthButton from '@/components/layout/AuthButton';
 
 // Mock Activities Database matching mockup structure
 const ACTIVITIES = [
@@ -120,8 +125,27 @@ export default function KegiatanPage() {
   const [cartCount, setCartCount] = useState(2);
   const [wishlist, setWishlist] = useState<Record<number, boolean>>({});
 
+  // Local dynamically editable Activities list (Stateful CRUD!)
+  const [activitiesList, setActivitiesList] = useState(
+    ACTIVITIES.map(a => ({ ...a, image: '' }))
+  );
+
+  // Admin Mode & Inline Editor states
+  const [isAdminMode, setIsAdminMode] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState({
+    title: '',
+    category: 'Edukasi & Informasi',
+    author: '',
+    date: '',
+    readingTime: '5 Menit',
+    summary: '',
+    content: '',
+    image: ''
+  });
+
   // Interactive View States
-  const [selectedActivity, setSelectedActivity] = useState<typeof ACTIVITIES[0] | null>(null);
+  const [selectedActivity, setSelectedActivity] = useState<typeof activitiesList[0] | null>(null);
 
   // Search & Tab Filters States
   const [searchQuery, setSearchQuery] = useState('');
@@ -135,7 +159,7 @@ export default function KegiatanPage() {
 
   // Filtered Activities computation
   const filteredActivities = useMemo(() => {
-    return ACTIVITIES.filter(activity => {
+    return activitiesList.filter(activity => {
       // 1. Search Query
       if (searchQuery && !activity.title.toLowerCase().includes(searchQuery.toLowerCase()) && !activity.summary.toLowerCase().includes(searchQuery.toLowerCase())) {
         return false;
@@ -152,13 +176,105 @@ export default function KegiatanPage() {
       }
       return true;
     });
-  }, [searchQuery, activeTab]);
+  }, [activitiesList, searchQuery, activeTab]);
 
   // Open detailed article view
-  const openActivityDetail = (activity: typeof ACTIVITIES[0]) => {
+  const openActivityDetail = (activity: typeof activitiesList[0]) => {
     setSelectedActivity(activity);
+    setIsEditing(false); // Default to view mode on entry
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
+  // Trigger editing form activation
+  const startEditing = (activity: typeof activitiesList[0]) => {
+    setEditForm({
+      title: activity.title,
+      category: activity.category,
+      author: activity.author,
+      date: activity.date,
+      readingTime: activity.readingTime || '5 Menit',
+      summary: activity.summary,
+      content: activity.content,
+      image: activity.image || ''
+    });
+    setIsEditing(true);
+  };
+
+  // Handle image upload for article banner
+  const handleArticleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setEditForm(prev => ({ ...prev, image: reader.result as string }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Save edited article to state
+  const handleSaveArticle = () => {
+    if (!editForm.title || !editForm.author || !editForm.content) {
+      alert('Judul, Penulis, dan Isi Artikel wajib diisi!');
+      return;
+    }
+    setActivitiesList(prev => prev.map(a => a.id === selectedActivity!.id ? {
+      ...a,
+      title: editForm.title,
+      category: editForm.category,
+      author: editForm.author,
+      date: editForm.date,
+      readingTime: editForm.readingTime,
+      summary: editForm.summary,
+      content: editForm.content,
+      image: editForm.image
+    } : a));
+
+    // Instantly update active view container
+    setSelectedActivity({
+      id: selectedActivity!.id,
+      title: editForm.title,
+      category: editForm.category,
+      author: editForm.author,
+      date: editForm.date,
+      readingTime: editForm.readingTime,
+      summary: editForm.summary,
+      content: editForm.content,
+      image: editForm.image,
+      tags: selectedActivity!.tags
+    });
+
+    setIsEditing(false);
+    alert('Artikel berhasil diperbarui!');
+  };
+
+  // Load and open edit mode dynamically if routed from Admin Dashboard with query parameters
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const idParam = params.get('id');
+    const editParam = params.get('edit');
+    if (idParam) {
+      const activityId = Number(idParam);
+      const targetActivity = activitiesList.find(a => a.id === activityId);
+      if (targetActivity) {
+        setSelectedActivity(targetActivity);
+        if (editParam === 'true') {
+          setIsAdminMode(true);
+          setEditForm({
+            title: targetActivity.title,
+            category: targetActivity.category,
+            author: targetActivity.author,
+            date: targetActivity.date,
+            readingTime: targetActivity.readingTime || '5 Menit',
+            summary: targetActivity.summary,
+            content: targetActivity.content,
+            image: targetActivity.image || ''
+          });
+          setIsEditing(true);
+        }
+      }
+    }
+  }, [activitiesList]);
 
   return (
     <div className="flex flex-col min-h-screen bg-[#fcfdfc] font-sans antialiased text-[#274235]">
@@ -222,19 +338,48 @@ export default function KegiatanPage() {
               )}
             </button>
 
-            {/* Login Button */}
-            <Link
-              href="/login"
-              className="hidden sm:inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full bg-brand-emerald hover:bg-brand-forest text-white text-xs font-bold shadow-md hover:shadow-lg transition-all duration-300"
-            >
-              Daftar/Masuk
-            </Link>
+            {/* Auth Button (Login or Profile) */}
+            <AuthButton />
           </div>
         </div>
       </header>
 
       {/* Main Content Area */}
       <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in-up">
+
+        {/* Floating Admin Mode Control Panel */}
+        <div className="mb-8 flex flex-col sm:flex-row gap-4 items-center justify-between bg-amber-50/60 border border-amber-200/50 rounded-3xl p-5 shadow-sm select-none">
+          <div className="flex items-center gap-3.5">
+            <span className="relative flex h-3.5 w-3.5">
+              <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isAdminMode ? 'bg-amber-400' : 'bg-brand-emerald/40'}`}></span>
+              <span className={`relative inline-flex rounded-full h-3.5 w-3.5 ${isAdminMode ? 'bg-amber-500' : 'bg-brand-emerald'}`}></span>
+            </span>
+            <div className="text-left space-y-0.5">
+              <h4 className="text-xs font-heading font-black text-brand-forest uppercase tracking-wider">
+                {isAdminMode ? 'Mode Admin (Aktif)' : 'Mode Pengunjung'}
+              </h4>
+              <p className="text-[11px] text-brand-sage font-semibold leading-relaxed">
+                {isAdminMode ? 'Anda dapat menyunting artikel secara visual di laman ini.' : 'Aktifkan mode admin untuk mengedit artikel langsung.'}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => {
+              setIsAdminMode(!isAdminMode);
+              if (isAdminMode) {
+                setIsEditing(false); // Cancel active editing if toggled off
+              }
+            }}
+            className={`inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full text-xs font-bold shadow-md cursor-pointer transition-all duration-300 ${
+              isAdminMode
+                ? 'bg-amber-500 hover:bg-amber-600 text-white'
+                : 'bg-brand-emerald/10 text-brand-emerald hover:bg-brand-emerald/20 border border-brand-emerald/20'
+            }`}
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>{isAdminMode ? 'Kembali ke Pengunjung' : 'Aktifkan Mode Admin'}</span>
+          </button>
+        </div>
 
         {/* CONDITION 1: ACTIVITIES LIST VIEW (Daftar Kegiatan) */}
         {!selectedActivity ? (
@@ -289,10 +434,20 @@ export default function KegiatanPage() {
                 <div
                   key={activity.id}
                   onClick={() => openActivityDetail(activity)}
-                  className="bg-white rounded-3xl border border-[#e2ede7] overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col sm:flex-row gap-6 p-6 text-left group relative cursor-pointer"
+                  className={`bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col sm:flex-row gap-6 p-6 text-left group relative cursor-pointer border ${
+                    isAdminMode
+                      ? 'border-amber-400/60 bg-amber-50/5 shadow-amber-500/2'
+                      : 'border-[#e2ede7]'
+                  }`}
                 >
                   {/* Share & Bookmark overlay icons */}
-                  <div className="absolute top-4 right-4 z-20 flex gap-2">
+                  <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
+                    {isAdminMode && (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500 text-white text-[9px] font-bold uppercase tracking-wider shadow-sm animate-pulse">
+                        <Edit3 className="w-2.5 h-2.5" />
+                        Sunting
+                      </span>
+                    )}
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -306,12 +461,18 @@ export default function KegiatanPage() {
                     </button>
                   </div>
 
-                  {/* Left Column: Image Placeholder (No plant images per instruction) */}
-                  <div className="w-full sm:w-44 h-44 rounded-2xl bg-brand-cream border border-[#e2ede7] flex flex-col items-center justify-center text-brand-sage shrink-0 select-none">
-                    <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-inner mb-1 group-hover:scale-105 transition-transform duration-300">
-                      <ImageIcon className="w-5 h-5 opacity-70" />
-                    </div>
-                    <span className="text-[9px] text-brand-sage/60 font-semibold tracking-wider">Gambar Kegiatan</span>
+                  {/* Left Column: Image Thumbnail (Support dynamic uploaded photos!) */}
+                  <div className="w-full sm:w-44 h-44 rounded-2xl bg-brand-cream border border-[#e2ede7] overflow-hidden flex flex-col items-center justify-center text-brand-sage shrink-0 relative select-none">
+                    {activity.image ? (
+                      <img src={activity.image} alt={activity.title} className="w-full h-full object-cover" />
+                    ) : (
+                      <>
+                        <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-inner mb-1 group-hover:scale-105 transition-transform duration-300">
+                          <ImageIcon className="w-5 h-5 opacity-70" />
+                        </div>
+                        <span className="text-[9px] text-brand-sage/60 font-semibold tracking-wider">Gambar Kegiatan</span>
+                      </>
+                    )}
                   </div>
 
                   {/* Right Column: Content Details */}
@@ -389,9 +550,188 @@ export default function KegiatanPage() {
             </div>
 
           </div>
+        ) : isEditing ? (
+          
+          /* CONDITION 2: ACTIVITY DETAIL ARTICLE VIEW IN EDIT MODE (Sunting Artikel) */
+          <div className="space-y-10 animate-fade-in-up">
+            
+            {/* Editor Action Bar */}
+            <div className="flex flex-col sm:flex-row gap-4 justify-between items-center border-b border-amber-200 pb-5">
+              <div className="flex items-center gap-2.5 text-amber-600 text-left">
+                <Edit3 className="w-5 h-5" />
+                <div>
+                  <span className="font-heading font-black text-lg uppercase tracking-wider block">Sunting Artikel Kegiatan</span>
+                  <p className="text-[11px] text-brand-sage font-semibold leading-none">Ubah konten artikel secara langsung di bawah ini:</p>
+                </div>
+              </div>
+              <div className="flex gap-3 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setIsEditing(false)}
+                  className="inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-full border border-zinc-200 text-zinc-500 hover:bg-zinc-50 text-xs font-bold uppercase tracking-wider transition-all cursor-pointer"
+                >
+                  <X className="w-3.5 h-3.5" />
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveArticle}
+                  className="inline-flex items-center justify-center gap-1.5 px-6 py-2.5 rounded-full bg-brand-emerald hover:bg-brand-forest text-white text-xs font-bold uppercase tracking-wider shadow-md hover:shadow-lg transition-all cursor-pointer"
+                >
+                  <Save className="w-3.5 h-3.5" />
+                  Simpan Perubahan
+                </button>
+              </div>
+            </div>
+
+            {/* Editor Workspace Fields */}
+            <div className="max-w-4xl mx-auto space-y-6 text-left">
+              
+              {/* Category & Reading Time fields */}
+              <div className="grid sm:grid-cols-2 gap-5">
+                <div className="flex flex-col">
+                  <label className="text-xs font-bold text-[#1e3329] uppercase tracking-wide mb-1">Kategori Kegiatan</label>
+                  <select
+                    value={editForm.category}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, category: e.target.value }))}
+                    className="w-full px-5 py-3 text-sm border border-zinc-200 rounded-full bg-white text-brand-forest focus:outline-none focus:ring-2 focus:ring-brand-emerald cursor-pointer"
+                  >
+                    <option value="Edukasi & Informasi">Edukasi & Informasi</option>
+                    <option value="Akademik & Riset">Akademik & Riset</option>
+                    <option value="Infrastruktur & Inovasi">Infrastruktur & Inovasi</option>
+                    <option value="Pameran & Komunitas">Pameran & Komunitas</option>
+                  </select>
+                </div>
+                
+                <div className="flex flex-col">
+                  <label className="text-xs font-bold text-[#1e3329] uppercase tracking-wide mb-1">Estimasi Waktu Baca</label>
+                  <input
+                    type="text"
+                    placeholder="Misal: 5 Menit"
+                    value={editForm.readingTime}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, readingTime: e.target.value }))}
+                    className="w-full px-5 py-3 text-sm border border-zinc-200 rounded-full bg-white text-brand-forest focus:outline-none focus:ring-2 focus:ring-brand-emerald"
+                  />
+                </div>
+              </div>
+
+              {/* Title input (Styled transparently to look like heading!) */}
+              <div className="flex flex-col">
+                <label className="text-xs font-bold text-[#1e3329] uppercase tracking-wide mb-1">Judul Artikel <span className="text-red-500">*</span></label>
+                <input
+                  type="text"
+                  placeholder="Masukkan judul artikel..."
+                  value={editForm.title}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, title: e.target.value }))}
+                  className="w-full px-5 py-3 font-heading font-black text-2xl sm:text-3xl text-brand-forest bg-amber-50/10 border border-dashed border-amber-300 rounded-2xl focus:outline-none focus:border-brand-emerald focus:ring-2 focus:ring-brand-emerald/10 shadow-inner"
+                  required
+                />
+              </div>
+
+              {/* Author & Date fields */}
+              <div className="grid sm:grid-cols-2 gap-5">
+                <div className="flex flex-col">
+                  <label className="text-xs font-bold text-[#1e3329] uppercase tracking-wide mb-1">Penulis/Author <span className="text-red-500">*</span></label>
+                  <input
+                    type="text"
+                    placeholder="Nama Penulis..."
+                    value={editForm.author}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, author: e.target.value }))}
+                    className="w-full px-5 py-3 text-sm border border-zinc-200 rounded-full bg-white text-brand-forest focus:outline-none focus:ring-2 focus:ring-brand-emerald"
+                    required
+                  />
+                </div>
+                
+                <div className="flex flex-col">
+                  <label className="text-xs font-bold text-[#1e3329] uppercase tracking-wide mb-1">Tanggal Rilis <span className="text-red-500">*</span></label>
+                  <input
+                    type="text"
+                    placeholder="Misal: 04/04/2026"
+                    value={editForm.date}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, date: e.target.value }))}
+                    className="w-full px-5 py-3 text-sm border border-zinc-200 rounded-full bg-white text-brand-forest focus:outline-none focus:ring-2 focus:ring-brand-emerald"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Banner Image Upload Block */}
+              <div className="flex flex-col">
+                <label className="text-xs font-bold text-[#1e3329] uppercase tracking-wide mb-1.5">Gambar Banner Artikel</label>
+                <div className="w-full h-80 sm:h-96 md:h-[380px] rounded-3xl bg-brand-cream border-2 border-dashed border-[#e2ede7] flex flex-col items-center justify-center text-brand-sage relative overflow-hidden shadow-inner">
+                  {editForm.image ? (
+                    <>
+                      <img src={editForm.image} alt="Preview" className="w-full h-full object-cover animate-fade-in-up" />
+                      <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center gap-3 opacity-0 hover:opacity-100 transition-opacity duration-300">
+                        <label className="cursor-pointer inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full bg-white text-brand-forest text-xs font-bold shadow-md hover:scale-105 transition-all">
+                          <Upload className="w-4 h-4" />
+                          <span>Ganti Banner</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleArticleImageUpload}
+                            className="hidden"
+                          />
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => setEditForm(prev => ({ ...prev, image: '' }))}
+                          className="inline-flex items-center gap-1 px-4 py-2 rounded-full bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-md transition-all cursor-pointer"
+                        >
+                          Hapus Banner
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center p-6 space-y-3">
+                      <ImageIcon className="w-12 h-12 text-brand-sage opacity-55" />
+                      <span className="text-xs font-bold uppercase tracking-wider">Belum Ada Banner Foto</span>
+                      <label className="cursor-pointer inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full bg-brand-emerald hover:bg-brand-forest text-white text-xs font-bold shadow-md transition-all">
+                        <Upload className="w-3.5 h-3.5" />
+                        <span>Pilih Foto Banner</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleArticleImageUpload}
+                          className="hidden"
+                        />
+                      </label>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Summary Input */}
+              <div className="flex flex-col">
+                <label className="text-xs font-bold text-[#1e3329] uppercase tracking-wide mb-1">Ringkasan Singkat Kartu (Summary)</label>
+                <textarea
+                  placeholder="Masukkan ringkasan singkat kegiatan..."
+                  rows={2}
+                  value={editForm.summary}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, summary: e.target.value }))}
+                  className="w-full px-5 py-3.5 text-sm border border-zinc-200 rounded-2xl bg-white text-brand-forest focus:outline-none focus:ring-2 focus:ring-brand-emerald shadow-inner"
+                />
+              </div>
+
+              {/* Content WYSIWYG-style Textarea */}
+              <div className="flex flex-col">
+                <label className="text-xs font-bold text-[#1e3329] uppercase tracking-wide mb-1">Isi Narasi Artikel Lengkap <span className="text-red-500">*</span></label>
+                <textarea
+                  placeholder="Tulis narasi lengkap artikel di sini..."
+                  rows={12}
+                  value={editForm.content}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, content: e.target.value }))}
+                  className="w-full px-5 py-4 text-base border border-zinc-200 rounded-3xl bg-white text-brand-forest focus:outline-none focus:ring-2 focus:ring-brand-emerald shadow-inner leading-relaxed"
+                  required
+                />
+              </div>
+
+            </div>
+
+          </div>
         ) : (
 
-          /* CONDITION 2: ACTIVITY DETAIL ARTICLE VIEW (Laman Detail Baca) */
+          /* CONDITION 3: ACTIVITY DETAIL ARTICLE VIEW (Laman Detail Baca) */
           <div className="space-y-12 animate-fade-in-up">
 
             {/* Action Bar (Kembali) */}
@@ -404,7 +744,16 @@ export default function KegiatanPage() {
                 Kembali ke Kegiatan
               </button>
 
-              <div className="flex gap-3">
+              <div className="flex items-center gap-3">
+                {isAdminMode && (
+                  <button
+                    onClick={() => startEditing(selectedActivity)}
+                    className="inline-flex items-center gap-1.5 px-4.5 py-2.5 rounded-full bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold uppercase tracking-wider shadow-md transition-all cursor-pointer"
+                  >
+                    <Edit3 className="w-3.5 h-3.5" />
+                    Sunting Artikel
+                  </button>
+                )}
                 <button
                   onClick={() => {
                     toggleBookmark(selectedActivity.id);
@@ -458,9 +807,15 @@ export default function KegiatanPage() {
 
               {/* Empty Big Image Container / Banner Placeholder */}
               <div className="w-full h-80 sm:h-96 md:h-[420px] rounded-3xl bg-brand-cream border border-[#e2ede7] flex flex-col items-center justify-center text-brand-sage select-none relative overflow-hidden shadow-inner">
-                <div className="absolute inset-0 bg-gradient-to-br from-brand-lime/10 to-brand-cream z-0" />
-                <ImageIcon className="w-16 h-16 opacity-30 mb-2 z-10 animate-pulse" />
-                <span className="text-sm text-brand-sage/60 font-semibold z-10">Gambar Banner Kegiatan</span>
+                {selectedActivity.image ? (
+                  <img src={selectedActivity.image} alt={selectedActivity.title} className="w-full h-full object-cover animate-fade-in-up" />
+                ) : (
+                  <>
+                    <div className="absolute inset-0 bg-gradient-to-br from-brand-lime/10 to-brand-cream z-0" />
+                    <ImageIcon className="w-16 h-16 opacity-30 mb-2 z-10 animate-pulse" />
+                    <span className="text-sm text-brand-sage/60 font-semibold z-10">Gambar Banner Kegiatan</span>
+                  </>
+                )}
               </div>
 
               {/* Detailed Narrative Text */}
@@ -490,16 +845,22 @@ export default function KegiatanPage() {
 
               {/* 2 Similar clickable cards */}
               <div className="grid md:grid-cols-2 gap-8">
-                {ACTIVITIES.filter(a => a.id !== selectedActivity.id).slice(0, 2).map(related => (
+                {activitiesList.filter(a => a.id !== selectedActivity.id).slice(0, 2).map(related => (
                   <div
                     key={related.id}
                     onClick={() => openActivityDetail(related)}
                     className="bg-white rounded-3xl border border-[#e2ede7] overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col sm:flex-row gap-6 p-6 text-left group relative cursor-pointer"
                   >
                     {/* Empty image block placeholder */}
-                    <div className="w-full sm:w-36 h-36 rounded-2xl bg-brand-cream border border-[#e2ede7] flex flex-col items-center justify-center text-brand-sage shrink-0 select-none">
-                      <ImageIcon className="w-5 h-5 opacity-40 mb-1" />
-                      <span className="text-[9px] text-brand-sage/60 font-semibold">Gambar Kegiatan</span>
+                    <div className="w-full sm:w-36 h-36 rounded-2xl bg-brand-cream border border-[#e2ede7] flex flex-col items-center justify-center text-brand-sage shrink-0 relative select-none">
+                      {related.image ? (
+                        <img src={related.image} alt={related.title} className="w-full h-full object-cover" />
+                      ) : (
+                        <>
+                          <ImageIcon className="w-5 h-5 opacity-40 mb-1" />
+                          <span className="text-[9px] text-brand-sage/60 font-semibold">Gambar Kegiatan</span>
+                        </>
+                      )}
                     </div>
 
                     {/* Content details */}

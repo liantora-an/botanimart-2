@@ -1,18 +1,18 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { 
-  LayoutDashboard, 
-  Sprout, 
-  Calendar as CalendarIcon, 
-  Plus, 
-  Edit, 
-  Trash2, 
-  Search, 
-  TrendingUp, 
-  Users, 
-  ShoppingBag, 
-  CheckCircle2, 
+import {
+  LayoutDashboard,
+  Sprout,
+  Calendar as CalendarIcon,
+  Plus,
+  Edit,
+  Trash2,
+  Search,
+  TrendingUp,
+  Users,
+  ShoppingBag,
+  CheckCircle2,
   AlertCircle,
   Clock,
   Sparkles,
@@ -74,16 +74,16 @@ const GRAPH_DATA = [
 export default function AdminDashboardPage() {
   // Navigation Menu state
   const [activeMenu, setActiveMenu] = useState<'dashboard' | 'produk' | 'kegiatan'>('dashboard');
-  
+
   // Data lists states (for stateful CRUD!)
   const [products, setProducts] = useState(INITIAL_PRODUCTS);
   const [activities, setActivities] = useState(INITIAL_ACTIVITIES);
   const [orders, setOrders] = useState(RECENT_ORDERS);
-  
+
   // Search states
   const [productSearch, setProductSearch] = useState('');
   const [activitySearch, setActivitySearch] = useState('');
-  
+
   // CRUD Modal Form States - Products
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<typeof INITIAL_PRODUCTS[0] | null>(null);
@@ -126,8 +126,8 @@ export default function AdminDashboardPage() {
 
   // Product Search Filter & Sorting
   const sortedAndFilteredProducts = useMemo(() => {
-    let result = products.filter(p => 
-      p.name.toLowerCase().includes(productSearch.toLowerCase()) || 
+    let result = products.filter(p =>
+      p.name.toLowerCase().includes(productSearch.toLowerCase()) ||
       p.category.toLowerCase().includes(productSearch.toLowerCase())
     );
 
@@ -153,8 +153,8 @@ export default function AdminDashboardPage() {
 
   // Activity Search Filter
   const filteredActivities = useMemo(() => {
-    return activities.filter(a => 
-      a.title.toLowerCase().includes(activitySearch.toLowerCase()) || 
+    return activities.filter(a =>
+      a.title.toLowerCase().includes(activitySearch.toLowerCase()) ||
       a.author.toLowerCase().includes(activitySearch.toLowerCase()) ||
       a.category.toLowerCase().includes(activitySearch.toLowerCase())
     );
@@ -217,14 +217,14 @@ export default function AdminDashboardPage() {
     // Reset and Close
     setIsProductModalOpen(false);
     setEditingProduct(null);
-    setProductForm({ 
-      name: '', 
-      category: 'Bibit Buah', 
-      price: '', 
-      stock: '', 
-      description: '', 
-      image: '', 
-      pickupMethods: ['Kirim', 'Ambil Sendiri'] 
+    setProductForm({
+      name: '',
+      category: 'Bibit Buah',
+      price: '',
+      stock: '',
+      description: '',
+      image: '',
+      pickupMethods: ['Kirim', 'Ambil Sendiri']
     });
   };
 
@@ -313,10 +313,10 @@ export default function AdminDashboardPage() {
 
   return (
     <div className="flex flex-col min-h-screen bg-[#f7f9f7] font-sans antialiased text-[#274235]">
-      
+
       {/* 1. Header Area */}
       <header className="sticky top-0 z-40 w-full bg-white border-b border-[#e2ede7] h-20 px-6 sm:px-8 flex items-center justify-between shadow-sm">
-        
+
         {/* Logo */}
         <Link href="/" className="flex items-center group">
           <div className="relative w-56 h-14 transition-all duration-300 group-hover:scale-102">
@@ -343,19 +343,18 @@ export default function AdminDashboardPage() {
 
       {/* 2. Main Page Layout (Sidebar + Content Panels) */}
       <div className="flex-1 flex flex-col md:flex-row">
-        
+
         {/* Sidebar Navigation Panel (Solid Forest Green) */}
         <aside className="w-full md:w-64 bg-brand-forest text-white shrink-0 flex flex-row md:flex-col border-r border-brand-forest/20 shadow-lg md:pt-6">
           <div className="flex-1 flex flex-row md:flex-col justify-around md:justify-start md:space-y-1.5 px-3 py-3 md:py-0 w-full overflow-x-auto md:overflow-x-visible">
-            
+
             {/* Dashboard Sidebar Button */}
             <button
               onClick={() => setActiveMenu('dashboard')}
-              className={`w-full flex items-center gap-3.5 px-4.5 py-3.5 rounded-2xl text-sm font-heading font-extrabold tracking-wide uppercase transition-all duration-300 shrink-0 cursor-pointer ${
-                activeMenu === 'dashboard' 
-                  ? 'bg-[#345947] text-brand-lime shadow-inner' 
+              className={`w-full flex items-center gap-3.5 px-4.5 py-3.5 rounded-2xl text-sm font-heading font-extrabold tracking-wide uppercase transition-all duration-300 shrink-0 cursor-pointer ${activeMenu === 'dashboard'
+                  ? 'bg-[#345947] text-brand-lime shadow-inner'
                   : 'text-white/70 hover:text-white hover:bg-white/5'
-              }`}
+                }`}
             >
               <LayoutDashboard className="w-5 h-5 shrink-0" />
               <span>Dashboard</span>
@@ -364,11 +363,10 @@ export default function AdminDashboardPage() {
             {/* Kelola Produk Sidebar Button */}
             <button
               onClick={() => setActiveMenu('produk')}
-              className={`w-full flex items-center gap-3.5 px-4.5 py-3.5 rounded-2xl text-sm font-heading font-extrabold tracking-wide uppercase transition-all duration-300 shrink-0 cursor-pointer ${
-                activeMenu === 'produk' 
-                  ? 'bg-[#345947] text-brand-lime shadow-inner' 
+              className={`w-full flex items-center gap-3.5 px-4.5 py-3.5 rounded-2xl text-sm font-heading font-extrabold tracking-wide uppercase transition-all duration-300 shrink-0 cursor-pointer ${activeMenu === 'produk'
+                  ? 'bg-[#345947] text-brand-lime shadow-inner'
                   : 'text-white/70 hover:text-white hover:bg-white/5'
-              }`}
+                }`}
             >
               <Sprout className="w-5 h-5 shrink-0" />
               <span>Kelola Produk</span>
@@ -377,11 +375,10 @@ export default function AdminDashboardPage() {
             {/* Kelola Kegiatan Sidebar Button */}
             <button
               onClick={() => setActiveMenu('kegiatan')}
-              className={`w-full flex items-center gap-3.5 px-4.5 py-3.5 rounded-2xl text-sm font-heading font-extrabold tracking-wide uppercase transition-all duration-300 shrink-0 cursor-pointer ${
-                activeMenu === 'kegiatan' 
-                  ? 'bg-[#345947] text-brand-lime shadow-inner' 
+              className={`w-full flex items-center gap-3.5 px-4.5 py-3.5 rounded-2xl text-sm font-heading font-extrabold tracking-wide uppercase transition-all duration-300 shrink-0 cursor-pointer ${activeMenu === 'kegiatan'
+                  ? 'bg-[#345947] text-brand-lime shadow-inner'
                   : 'text-white/70 hover:text-white hover:bg-white/5'
-              }`}
+                }`}
             >
               <CalendarIcon className="w-5 h-5 shrink-0" />
               <span>Kelola Kegiatan</span>
@@ -392,11 +389,11 @@ export default function AdminDashboardPage() {
 
         {/* 3. Main Content Display Panel */}
         <main className="flex-1 p-6 sm:p-8 md:p-10 overflow-y-auto max-w-7xl mx-auto w-full animate-fade-in-up">
-          
+
           {/* MENU 1: OVERVIEW DASHBOARD */}
           {activeMenu === 'dashboard' && (
             <div className="space-y-8 text-left">
-              
+
               {/* Title Section */}
               <div className="space-y-1">
                 <h1 className="font-heading font-black text-3xl text-brand-forest">
@@ -409,7 +406,7 @@ export default function AdminDashboardPage() {
 
               {/* Four Stat Cards row */}
               <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                
+
                 {/* Stat 1: Total Orders */}
                 <div className="bg-white rounded-3xl p-6 border border-[#e2ede7] shadow-sm flex items-center gap-5 hover:scale-[1.01] transition-transform duration-300">
                   <div className="w-14 h-14 rounded-2xl bg-brand-sage/10 text-brand-sage flex items-center justify-center shrink-0">
@@ -470,7 +467,7 @@ export default function AdminDashboardPage() {
 
               {/* Graphics Section Grid */}
               <div className="grid lg:grid-cols-12 gap-8">
-                
+
                 {/* Left Large Column: Custom SVG Sales Graph */}
                 <div className="lg:col-span-8 bg-white rounded-3xl p-6 border border-[#e2ede7] shadow-sm space-y-6">
                   <div className="flex items-center justify-between border-b border-[#e2ede7] pb-4">
@@ -485,31 +482,31 @@ export default function AdminDashboardPage() {
                   {/* SVG Chart Container */}
                   <div className="relative w-full h-64 sm:h-72 select-none">
                     <svg className="w-full h-full" viewBox="0 0 600 240" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      
+
                       {/* Grid Horizontal Guidelines */}
                       <line x1="40" y1="40" x2="560" y2="40" stroke="#f4f6f4" strokeWidth="1.5" />
                       <line x1="40" y1="90" x2="560" y2="90" stroke="#f4f6f4" strokeWidth="1.5" />
                       <line x1="40" y1="140" x2="560" y2="140" stroke="#f4f6f4" strokeWidth="1.5" strokeDasharray="4 4" />
                       <line x1="40" y1="190" x2="560" y2="190" stroke="#f4f6f4" strokeWidth="1.5" />
-                      
+
                       {/* Vertical axes */}
                       <line x1="40" y1="20" x2="40" y2="200" stroke="#e2ede7" strokeWidth="1" />
                       <line x1="560" y1="20" x2="560" y2="200" stroke="#e2ede7" strokeWidth="1" />
 
                       {/* SVG Line path with smooth interpolation */}
-                      <path 
-                        d="M 60,160 Q 150,130 240,95 T 420,70 T 540,40" 
-                        stroke="#345947" 
-                        strokeWidth="3.5" 
-                        strokeLinecap="round" 
-                        fill="none" 
+                      <path
+                        d="M 60,160 Q 150,130 240,95 T 420,70 T 540,40"
+                        stroke="#345947"
+                        strokeWidth="3.5"
+                        strokeLinecap="round"
+                        fill="none"
                       />
 
                       {/* Soft Green Area Gradient under Sales Path */}
-                      <path 
-                        d="M 60,160 Q 150,130 240,95 T 420,70 T 540,40 L 540,200 L 60,200 Z" 
-                        fill="url(#gradient-fill)" 
-                        opacity="0.12" 
+                      <path
+                        d="M 60,160 Q 150,130 240,95 T 420,70 T 540,40 L 540,200 L 60,200 Z"
+                        fill="url(#gradient-fill)"
+                        opacity="0.12"
                       />
 
                       {/* Gradient Definitions */}
@@ -559,7 +556,7 @@ export default function AdminDashboardPage() {
 
                   {/* List of best-selling products with progress bars */}
                   <div className="space-y-4 flex-1 flex flex-col justify-center">
-                    
+
                     {/* Item 1 */}
                     <div className="space-y-1">
                       <div className="flex justify-between text-xs font-bold text-brand-forest">
@@ -639,11 +636,10 @@ export default function AdminDashboardPage() {
                           <td className="py-4.5 text-brand-sage">{order.product}</td>
                           <td className="py-4.5">Rp {order.total.toLocaleString('id-ID')}</td>
                           <td className="py-4.5 text-center">
-                            <span className={`inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-bold ${
-                              order.status === 'Settlement' 
-                                ? 'bg-emerald-50/80 text-emerald-700 border border-emerald-100' 
+                            <span className={`inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-bold ${order.status === 'Settlement'
+                                ? 'bg-emerald-50/80 text-emerald-700 border border-emerald-100'
                                 : 'bg-amber-50/80 text-amber-600 border border-amber-100'
-                            }`}>
+                              }`}>
                               {order.status === 'Settlement' ? (
                                 <CheckCircle2 className="w-3.5 h-3.5" />
                               ) : (
@@ -666,7 +662,7 @@ export default function AdminDashboardPage() {
           {/* MENU 2: KELOLA PRODUK (CRUD) */}
           {activeMenu === 'produk' && (
             <div className="space-y-8 text-left">
-              
+
               {/* Header Title Section */}
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-[#e2ede7] pb-6">
                 <div className="space-y-1">
@@ -678,17 +674,17 @@ export default function AdminDashboardPage() {
                   </p>
                 </div>
 
-                 <button
+                <button
                   onClick={() => {
                     setEditingProduct(null);
-                    setProductForm({ 
-                      name: '', 
-                      category: 'Bibit Buah', 
-                      price: '', 
-                      stock: '', 
-                      description: '', 
-                      image: '', 
-                      pickupMethods: ['Kirim', 'Ambil Sendiri'] 
+                    setProductForm({
+                      name: '',
+                      category: 'Bibit Buah',
+                      price: '',
+                      stock: '',
+                      description: '',
+                      image: '',
+                      pickupMethods: ['Kirim', 'Ambil Sendiri']
                     });
                     setIsProductModalOpen(true);
                   }}
@@ -720,7 +716,7 @@ export default function AdminDashboardPage() {
                     <thead>
                       <tr className="border-b border-brand-cream bg-brand-cream/10 text-left text-xs font-bold text-brand-sage uppercase tracking-wider select-none">
                         <th className="py-4.5 pl-6 w-16">ID</th>
-                        <th 
+                        <th
                           onClick={() => handleProductSort('name')}
                           className="py-4.5 cursor-pointer hover:bg-brand-cream/20 transition-colors"
                         >
@@ -729,7 +725,7 @@ export default function AdminDashboardPage() {
                             <ArrowUpDown className={`w-3 h-3 transition-colors ${productSort.key === 'name' ? 'text-brand-emerald' : 'text-zinc-400'}`} />
                           </div>
                         </th>
-                        <th 
+                        <th
                           onClick={() => handleProductSort('category')}
                           className="py-4.5 cursor-pointer hover:bg-brand-cream/20 transition-colors"
                         >
@@ -738,7 +734,7 @@ export default function AdminDashboardPage() {
                             <ArrowUpDown className={`w-3 h-3 transition-colors ${productSort.key === 'category' ? 'text-brand-emerald' : 'text-zinc-400'}`} />
                           </div>
                         </th>
-                        <th 
+                        <th
                           onClick={() => handleProductSort('price')}
                           className="py-4.5 cursor-pointer hover:bg-brand-cream/20 transition-colors"
                         >
@@ -747,7 +743,7 @@ export default function AdminDashboardPage() {
                             <ArrowUpDown className={`w-3 h-3 transition-colors ${productSort.key === 'price' ? 'text-brand-emerald' : 'text-zinc-400'}`} />
                           </div>
                         </th>
-                        <th 
+                        <th
                           onClick={() => handleProductSort('stock')}
                           className="py-4.5 cursor-pointer hover:bg-brand-cream/20 transition-colors"
                         >
@@ -757,7 +753,7 @@ export default function AdminDashboardPage() {
                           </div>
                         </th>
                         <th className="py-4.5">Metode Pengambilan</th>
-                        <th 
+                        <th
                           onClick={() => handleProductSort('rating')}
                           className="py-4.5 cursor-pointer hover:bg-brand-cream/20 transition-colors"
                         >
@@ -773,7 +769,7 @@ export default function AdminDashboardPage() {
                       {sortedAndFilteredProducts.map(product => (
                         <tr key={product.id} className="hover:bg-brand-cream/10 transition-colors">
                           <td className="py-4.5 pl-6 text-brand-sage">#{product.id}</td>
-                          
+
                           {/* Nama Produk with Image Thumbnail */}
                           <td className="py-4.5">
                             <div className="flex items-center gap-3.5">
@@ -787,24 +783,23 @@ export default function AdminDashboardPage() {
                               <span className="font-bold text-[#1e3329] text-sm">{product.name}</span>
                             </div>
                           </td>
-                          
+
                           <td className="py-4.5 text-xs font-bold text-brand-emerald uppercase tracking-wider">{product.category}</td>
                           <td className="py-4.5 font-bold">Rp {product.price.toLocaleString('id-ID')}</td>
-                          
+
                           {/* Stock Status Capsule */}
                           <td className="py-4.5">
                             <div className="flex flex-col gap-1 text-left">
-                              <span className={`inline-flex items-center justify-center w-24 py-1 rounded-full text-[9px] font-bold tracking-wide uppercase border ${
-                                product.stock > 0
+                              <span className={`inline-flex items-center justify-center w-24 py-1 rounded-full text-[9px] font-bold tracking-wide uppercase border ${product.stock > 0
                                   ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
                                   : 'bg-rose-50 text-rose-700 border-rose-100'
-                              }`}>
+                                }`}>
                                 {product.stock > 0 ? 'In Stock' : 'Out of Stock'}
                               </span>
                               <span className="text-[11px] text-brand-sage pl-1">{product.stock} pcs</span>
                             </div>
                           </td>
-                          
+
                           {/* Pickup Methods Column */}
                           <td className="py-4.5">
                             <div className="flex flex-wrap gap-1 max-w-[150px]">
@@ -815,14 +810,14 @@ export default function AdminDashboardPage() {
                               ))}
                             </div>
                           </td>
-                          
+
                           <td className="py-4.5">
                             <div className="flex items-center gap-1 text-xs text-brand-sage font-bold">
                               <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
                               <span>{product.rating}</span>
                             </div>
                           </td>
-                          
+
                           <td className="py-4.5 text-center pr-6">
                             <div className="flex items-center justify-center gap-2">
                               {/* Edit Action Button */}
@@ -863,7 +858,7 @@ export default function AdminDashboardPage() {
           {/* MENU 3: KELOLA KEGIATAN (CRUD) */}
           {activeMenu === 'kegiatan' && (
             <div className="space-y-8 text-left">
-              
+
               {/* Header Title Section */}
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-[#e2ede7] pb-6">
                 <div className="space-y-1">
@@ -968,13 +963,13 @@ export default function AdminDashboardPage() {
       {isProductModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-md bg-black/40 animate-fade-in-up">
           <div className="bg-white/95 rounded-[36px] border border-white/20 shadow-2xl w-full max-w-xl overflow-hidden animate-fade-in-up relative">
-            
+
             {/* Modal Title header */}
             <div className="bg-brand-cream border-b border-[#e2ede7] px-8 py-5 flex items-center justify-between">
               <h3 className="font-heading font-extrabold text-lg text-[#1e3329]">
                 {editingProduct ? 'Edit Tanaman/Produk' : 'Tambah Tanaman/Produk Baru'}
               </h3>
-              <button 
+              <button
                 onClick={() => setIsProductModalOpen(false)}
                 className="p-1.5 rounded-full hover:bg-brand-lime/20 text-brand-sage hover:text-brand-forest transition-colors cursor-pointer"
                 aria-label="Tutup"
@@ -985,7 +980,7 @@ export default function AdminDashboardPage() {
 
             {/* Modal Body Form fields */}
             <form onSubmit={handleProductSubmit} className="p-8 space-y-4 text-left">
-              
+
               {/* Product photo upload block */}
               <div className="flex flex-col">
                 <label className="text-sm font-semibold text-[#1e3329] mb-1.5">Foto Produk</label>
@@ -1050,7 +1045,7 @@ export default function AdminDashboardPage() {
 
               {/* Price & Stock Grid fields */}
               <div className="grid sm:grid-cols-2 gap-4">
-                
+
                 {/* Price */}
                 <div className="flex flex-col">
                   <label className="text-sm font-semibold text-[#1e3329] mb-1">Harga (Rupiah) <span className="text-red-500">*</span></label>
@@ -1154,13 +1149,13 @@ export default function AdminDashboardPage() {
       {isActivityModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-md bg-black/40 animate-fade-in-up">
           <div className="bg-white/95 rounded-[36px] border border-white/20 shadow-2xl w-full max-w-xl overflow-hidden animate-fade-in-up relative">
-            
+
             {/* Modal Title header */}
             <div className="bg-brand-cream border-b border-[#e2ede7] px-8 py-5 flex items-center justify-between">
               <h3 className="font-heading font-extrabold text-lg text-[#1e3329]">
                 {editingActivity ? 'Edit Artikel Kegiatan' : 'Tambah Kegiatan Baru'}
               </h3>
-              <button 
+              <button
                 onClick={() => setIsActivityModalOpen(false)}
                 className="p-1.5 rounded-full hover:bg-brand-lime/20 text-brand-sage hover:text-brand-forest transition-colors cursor-pointer"
                 aria-label="Tutup"
@@ -1171,7 +1166,7 @@ export default function AdminDashboardPage() {
 
             {/* Modal Body Form fields */}
             <form onSubmit={handleActivitySubmit} className="p-8 space-y-4 text-left">
-              
+
               {/* Activity title */}
               <div className="flex flex-col">
                 <label className="text-sm font-semibold text-[#1e3329] mb-1">Judul Kegiatan <span className="text-red-500">*</span></label>
@@ -1187,7 +1182,7 @@ export default function AdminDashboardPage() {
 
               {/* Author & Date Grid fields */}
               <div className="grid sm:grid-cols-2 gap-4">
-                
+
                 {/* Author */}
                 <div className="flex flex-col">
                   <label className="text-sm font-semibold text-[#1e3329] mb-1">Penulis/Author <span className="text-red-500">*</span></label>
