@@ -83,6 +83,61 @@ export default function AkunPage() {
   const [loggingOut, setLoggingOut] = useState(false);
   const [activeTab, setActiveTab] = useState<'orders' | 'profile'>('orders');
 
+  // Edit Profile States
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [profileForm, setProfileForm] = useState({
+    full_name: '',
+    phone: '',
+    address: '',
+  });
+  const [savingProfile, setSavingProfile] = useState(false);
+
+  const startEditingProfile = () => {
+    if (user) {
+      setProfileForm({
+        full_name: user.full_name || '',
+        phone: user.phone || '',
+        address: user.address || '',
+      });
+      setIsEditingProfile(true);
+    }
+  };
+
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!profileForm.full_name.trim()) {
+      alert('Nama lengkap wajib diisi.');
+      return;
+    }
+
+    setSavingProfile(true);
+    try {
+      const res = await fetch('/api/auth/me', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          full_name: profileForm.full_name.trim(),
+          phone: profileForm.phone.trim() || null,
+          address: profileForm.address.trim() || null,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setUser(data.data);
+        setIsEditingProfile(false);
+        alert('Profil berhasil diperbarui!');
+      } else {
+        alert(data.error || 'Gagal memperbarui profil.');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Terjadi kesalahan koneksi.');
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
   const fetchData = useCallback(async () => {
     try {
       const [userRes, ordersRes] = await Promise.all([
@@ -286,46 +341,138 @@ export default function AkunPage() {
         {/* ─── Profile Tab ────────────────────────────────────────────── */}
         {activeTab === 'profile' && user && (
           <div className="max-w-lg space-y-6">
-            <div className="bg-white rounded-2xl border border-[#e2ede7] p-6 shadow-sm">
-              {/* Avatar */}
-              <div className="flex items-center gap-4 mb-6">
-                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-brand-emerald to-brand-forest flex items-center justify-center">
-                  <span className="text-white text-xl font-bold">
-                    {(user.full_name || user.email).charAt(0).toUpperCase()}
-                  </span>
+            {isEditingProfile ? (
+              <form onSubmit={handleSaveProfile} className="bg-white rounded-2xl border border-[#e2ede7] p-6 shadow-sm space-y-5 animate-fade-in-up">
+                <div className="flex items-center gap-3 pb-4 border-b border-[#e2ede7]/60">
+                  <User className="w-5 h-5 text-brand-emerald" />
+                  <h3 className="text-lg font-bold font-heading">Edit Profil</h3>
                 </div>
-                <div>
-                  <h3 className="text-lg font-bold font-heading">{user.full_name || 'Pengguna'}</h3>
-                  <p className="text-sm text-brand-sage">{user.role === 'Admin' ? '🛡️ Administrator' : '🌿 Member'}</p>
+
+                {/* Email (Read only) */}
+                <div className="flex flex-col">
+                  <label className="text-sm font-semibold text-[#1e3329] mb-1">Email</label>
+                  <input
+                    type="email"
+                    value={user.email}
+                    disabled
+                    className="w-full px-5 py-3 text-sm border border-zinc-100 rounded-full bg-zinc-50 text-brand-sage focus:outline-none cursor-not-allowed shadow-inner"
+                  />
+                  <span className="text-xs text-brand-sage mt-1">Email tidak dapat diubah.</span>
+                </div>
+
+                {/* Full Name */}
+                <div className="flex flex-col">
+                  <label className="text-sm font-semibold text-[#1e3329] mb-1">Nama Lengkap <span className="text-red-500">*</span></label>
+                  <input
+                    type="text"
+                    placeholder="Nama Lengkap Anda"
+                    value={profileForm.full_name}
+                    onChange={(e) => setProfileForm(prev => ({ ...prev, full_name: e.target.value }))}
+                    className="w-full px-5 py-3 text-sm border border-zinc-200 rounded-full bg-white text-brand-forest focus:outline-none focus:ring-2 focus:ring-brand-emerald shadow-inner"
+                    required
+                  />
+                </div>
+
+                {/* Phone */}
+                <div className="flex flex-col">
+                  <label className="text-sm font-semibold text-[#1e3329] mb-1">Nomor Telepon/WhatsApp</label>
+                  <input
+                    type="tel"
+                    placeholder="Contoh: 08123456789"
+                    value={profileForm.phone}
+                    onChange={(e) => setProfileForm(prev => ({ ...prev, phone: e.target.value }))}
+                    className="w-full px-5 py-3 text-sm border border-zinc-200 rounded-full bg-white text-brand-forest focus:outline-none focus:ring-2 focus:ring-brand-emerald shadow-inner"
+                  />
+                </div>
+
+                {/* Address */}
+                <div className="flex flex-col">
+                  <label className="text-sm font-semibold text-[#1e3329] mb-1">Alamat Pengiriman</label>
+                  <textarea
+                    placeholder="Masukkan alamat lengkap Anda..."
+                    rows={3}
+                    value={profileForm.address}
+                    onChange={(e) => setProfileForm(prev => ({ ...prev, address: e.target.value }))}
+                    className="w-full px-5 py-3 text-sm border border-zinc-200 rounded-3xl bg-white text-brand-forest focus:outline-none focus:ring-2 focus:ring-brand-emerald shadow-inner"
+                  />
+                </div>
+
+                {/* Action Buttons */}
+                <div className="pt-4 border-t border-[#e2ede7]/60 flex items-center justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setIsEditingProfile(false)}
+                    disabled={savingProfile}
+                    className="px-5 py-2.5 rounded-full border border-zinc-200 text-sm font-semibold text-brand-sage hover:bg-brand-cream/50 transition-colors animate-fade-in"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={savingProfile}
+                    className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-brand-forest hover:bg-brand-emerald text-white text-sm font-semibold shadow-md transition-all disabled:opacity-75 disabled:cursor-not-allowed"
+                  >
+                    {savingProfile ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Menyimpan...
+                      </>
+                    ) : (
+                      'Simpan Perubahan'
+                    )}
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <div className="bg-white rounded-2xl border border-[#e2ede7] p-6 shadow-sm space-y-6 animate-fade-in-up">
+                {/* Avatar and Edit Button */}
+                <div className="flex items-center justify-between flex-wrap gap-4 pb-4 border-b border-[#e2ede7]/60">
+                  <div className="flex items-center gap-4">
+                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-brand-emerald to-brand-forest flex items-center justify-center shadow-md">
+                      <span className="text-white text-xl font-bold">
+                        {(user.full_name || user.email).charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold font-heading">{user.full_name || 'Pengguna'}</h3>
+                      <p className="text-sm text-brand-sage">{user.role === 'Admin' ? '🛡️ Administrator' : '🌿 Member'}</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={startEditingProfile}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full border border-brand-forest/30 text-brand-forest hover:bg-brand-cream/50 text-xs font-bold transition-all"
+                  >
+                    Edit Profil
+                  </button>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3 p-3 bg-brand-cream/50 rounded-xl">
+                    <Mail className="w-4 h-4 text-brand-sage" />
+                    <div>
+                      <p className="text-xs text-brand-sage">Email</p>
+                      <p className="text-sm font-medium">{user.email}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 p-3 bg-brand-cream/50 rounded-xl">
+                    <PhoneIcon className="w-4 h-4 text-brand-sage" />
+                    <div>
+                      <p className="text-xs text-brand-sage">Telepon</p>
+                      <p className="text-sm font-medium">{user.phone || 'Belum diisi'}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 p-3 bg-brand-cream/50 rounded-xl">
+                    <MapPin className="w-4 h-4 text-brand-sage" />
+                    <div>
+                      <p className="text-xs text-brand-sage">Alamat</p>
+                      <p className="text-sm font-medium">{user.address || 'Belum diisi'}</p>
+                    </div>
+                  </div>
                 </div>
               </div>
-
-              <div className="space-y-4">
-                <div className="flex items-center gap-3 p-3 bg-brand-cream/50 rounded-xl">
-                  <Mail className="w-4 h-4 text-brand-sage" />
-                  <div>
-                    <p className="text-xs text-brand-sage">Email</p>
-                    <p className="text-sm font-medium">{user.email}</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3 p-3 bg-brand-cream/50 rounded-xl">
-                  <PhoneIcon className="w-4 h-4 text-brand-sage" />
-                  <div>
-                    <p className="text-xs text-brand-sage">Telepon</p>
-                    <p className="text-sm font-medium">{user.phone || 'Belum diisi'}</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3 p-3 bg-brand-cream/50 rounded-xl">
-                  <MapPin className="w-4 h-4 text-brand-sage" />
-                  <div>
-                    <p className="text-xs text-brand-sage">Alamat</p>
-                    <p className="text-sm font-medium">{user.address || 'Belum diisi'}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
+            )}
 
             {/* Logout (mobile) */}
             <button

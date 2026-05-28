@@ -7,7 +7,6 @@ import {
   Search,
   ShoppingBag,
   MapPin,
-  Phone,
   ChevronLeft,
   ChevronRight,
   Star,
@@ -293,15 +292,22 @@ export default function HomePage() {
                 </div>
               </div>
 
-              <div className="flex items-start gap-4">
-                <div className="w-10 h-10 rounded-full bg-brand-cream flex items-center justify-center text-brand-emerald shrink-0">
-                  <Phone className="w-5 h-5" />
+              <a
+                href="https://wa.me/6281110631132"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-start gap-4 hover:opacity-85 transition-opacity"
+              >
+                <div className="w-10 h-10 rounded-full bg-[#25d366]/10 flex items-center justify-center text-[#25d366] shrink-0">
+                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.455L0 24zm6.59-4.846c1.66.986 3.288 1.498 4.885 1.503 5.485.002 9.948-4.436 9.951-9.886.002-2.641-1.02-5.124-2.877-6.984C16.691 1.928 14.22 1.91 12.012 1.91 6.524 1.91 2.06 6.348 2.057 11.8.055 13.526.564 15.223 1.56 16.892l-.997 3.637 3.734-.969a9.7 9.7 0 001.35.59z" />
+                  </svg>
                 </div>
                 <div>
-                  <h4 className="font-bold text-[#1e3329] text-sm">Hubungi Kami</h4>
-                  <p className="text-xs text-brand-sage font-medium mt-0.5">+62 251-862-2000 (Toko Resmi)</p>
+                  <h4 className="font-bold text-[#1e3329] text-sm">Hubungi Kami (WhatsApp)</h4>
+                  <p className="text-xs text-brand-sage font-medium mt-0.5">081110631132</p>
                 </div>
-              </div>
+              </a>
             </div>
           </div>
 
@@ -698,11 +704,12 @@ export default function HomePage() {
               Kunjungi Toko Kami!
             </h2>
             <p className="text-brand-sage text-sm sm:text-base leading-relaxed font-semibold">
-              Galeri offline kami beroperasi setiap hari dari pukul 08.00 s.d 17.00 WIB. Silakan kunjungi alamat kami langsung untuk melihat ratusan bibit unggulan segar di Dramaga, Bogor.
+              Galeri offline kami beroperasi setiap hari dari pukul 08.00 s.d 17.00 WIB. Silakan kunjungi alamat kami langsung untuk melihat ratusa
+              n bibit unggulan segar di Dramaga, Bogor.
             </p>
             <div className="pt-2">
               <a
-                href="https://maps.google.com"
+                href="https://maps.app.goo.gl/A8s5sfKYDKjfmq3NA"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-full bg-white hover:bg-brand-cream text-brand-forest text-sm font-extrabold shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300"

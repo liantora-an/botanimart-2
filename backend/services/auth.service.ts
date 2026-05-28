@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
-import { createUserProfile, getUserById } from '@/backend/repositories/user.repository';
+import { createUserProfile, getUserById, updateUserProfile } from '@/backend/repositories/user.repository';
 import type { User } from '@/backend/types';
 
 /**
@@ -30,10 +30,16 @@ export async function signUp(params: {
 }): Promise<SignUpResult> {
   const supabase = await createClient();
 
-  // 1. Register with Supabase Auth
+  // 1. Register with Supabase Auth (passing raw metadata for DB triggers)
   const { data: authData, error: authError } = await supabase.auth.signUp({
     email: params.email,
     password: params.password,
+    options: {
+      data: {
+        full_name: params.full_name,
+        phone: params.phone,
+      }
+    }
   });
 
   if (authError || !authData.user) {
@@ -43,18 +49,31 @@ export async function signUp(params: {
     };
   }
 
-  // 2. Create public profile row
-  const profile = await createUserProfile({
-    id: authData.user.id,
-    email: params.email,
+  // 2. Update profile row if trigger already ran, otherwise create it
+  let profile = await updateUserProfile(authData.user.id, {
     full_name: params.full_name,
     phone: params.phone,
-    role: 'User',
   });
 
   if (!profile) {
-    // Auth user was created but profile failed — still return partial success
-    // The trigger on the DB will handle this if configured
+    profile = await createUserProfile({
+      id: authData.user.id,
+      email: params.email,
+      full_name: params.full_name,
+      phone: params.phone,
+      role: 'User',
+    });
+  }
+
+  // Clear auto-login session from cookie store so user is not automatically logged in
+  try {
+    await supabase.auth.signOut();
+  } catch (signOutErr) {
+    console.warn('[signUp] Failed to clear auto-login session:', signOutErr);
+  }
+
+  if (!profile) {
+    // Return temporary user info if DB operations failed
     return {
       success: true,
       user: {
@@ -158,4 +177,38 @@ export async function getCurrentUser(): Promise<User | null> {
   }
 
   return profile;
+}
+
+/**
+ * Updates the current user's profile and auth metadata.
+ */
+export async function updateCurrentUser(
+  userId: string,
+  updates: { full_name?: string; phone?: string; address?: string }
+): Promise<{ success: boolean; user?: User; error?: string }> {
+  // Sync full name and phone with Supabase Auth user metadata
+  if (updates.full_name || updates.phone) {
+    try {
+      const supabase = await createClient();
+      const metadata: Record<string, any> = {};
+      if (updates.full_name) metadata.full_name = updates.full_name;
+      if (updates.phone) metadata.phone = updates.phone;
+
+      const { error: authErr } = await supabase.auth.updateUser({
+        data: metadata
+      });
+      if (authErr) {
+        console.warn('[auth.service] Failed to update auth metadata:', authErr.message);
+      }
+    } catch (err: any) {
+      console.warn('[auth.service] Auth metadata update exception:', err.message || err);
+    }
+  }
+
+  const profile = await updateUserProfile(userId, updates);
+  if (!profile) {
+    return { success: false, error: 'Gagal memperbarui profil di database.' };
+  }
+
+  return { success: true, user: profile };
 }
