@@ -3,8 +3,11 @@
 import React, { useState, useEffect } from 'react';
 import { Eye, EyeOff, Phone, AlertCircle, CheckCircle2, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 export default function RegisterForm() {
+  const router = useRouter();
+
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -78,10 +81,34 @@ export default function RegisterForm() {
 
     setIsLoading(true);
 
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email,
+          password,
+          full_name: fullName,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        setError(data.error || 'Registrasi gagal. Silakan coba lagi.');
+        setIsLoading(false);
+        return;
+      }
+
       setSuccess(true);
-    }, 1500);
+      // Redirect to login after brief success message
+      setTimeout(() => {
+        router.push('/login');
+      }, 1500);
+    } catch {
+      setError('Terjadi kesalahan jaringan. Silakan coba lagi.');
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -100,7 +127,7 @@ export default function RegisterForm() {
       {success && (
         <div className="flex items-center gap-2.5 p-3.5 mb-5 rounded-2xl bg-emerald-50 text-emerald-700 text-xs sm:text-sm border border-emerald-100 animate-fade-in-up">
           <CheckCircle2 className="w-4.5 h-4.5 shrink-0" />
-          <span>Daftar berhasil! Silakan masuk...</span>
+          <span>Daftar berhasil! Mengalihkan ke halaman masuk...</span>
         </div>
       )}
 

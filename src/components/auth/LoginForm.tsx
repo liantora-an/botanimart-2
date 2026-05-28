@@ -3,8 +3,13 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff, Phone, AlertCircle, CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 export default function LoginForm() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get('from') || '/';
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -23,16 +28,31 @@ export default function LoginForm() {
     
     setIsLoading(true);
     
-    setTimeout(() => {
-      setIsLoading(false);
-      if (email === 'admin@botanimart.com' && password === 'admin123') {
-        setSuccess(true);
-      } else if (email.includes('@') && password.length >= 8) {
-        setSuccess(true);
-      } else {
-        setError('Email atau kata sandi salah. Silakan coba lagi.');
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        setError(data.error || 'Email atau kata sandi salah. Silakan coba lagi.');
+        setIsLoading(false);
+        return;
       }
-    }, 1500);
+
+      setSuccess(true);
+      // Redirect after brief success message
+      setTimeout(() => {
+        router.push(redirectTo);
+        router.refresh(); // Refresh server components to pick up new session
+      }, 800);
+    } catch {
+      setError('Terjadi kesalahan jaringan. Silakan coba lagi.');
+      setIsLoading(false);
+    }
   };
 
   return (

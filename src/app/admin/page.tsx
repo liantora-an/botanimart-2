@@ -1,18 +1,18 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
-import { 
-  LayoutDashboard, 
-  Sprout, 
-  Calendar as CalendarIcon, 
-  Plus, 
-  Edit, 
-  Trash2, 
-  Search, 
-  TrendingUp, 
-  Users, 
-  ShoppingBag, 
-  CheckCircle2, 
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import {
+  LayoutDashboard,
+  Sprout,
+  Calendar as CalendarIcon,
+  Plus,
+  Edit,
+  Trash2,
+  Search,
+  TrendingUp,
+  Users,
+  ShoppingBag,
+  CheckCircle2,
   AlertCircle,
   Clock,
   Sparkles,
@@ -25,71 +25,47 @@ import {
   Star,
   Upload,
   ArrowUpDown,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Loader2,
+  ShieldAlert
 } from 'lucide-react';
 import Link from 'next/link';
 import NextImage from 'next/image';
-
-// Initial Mock Products Database (Same as catalog for sync feel)
-const INITIAL_PRODUCTS = [
-  { id: 1, name: 'Bibit Mangga', category: 'Bibit Buah', price: 35000, stock: 20, rating: 4.9, description: 'Bibit Buah Mangga unggulan hasil okulasi dengan kualitas terbaik.', image: '', pickupMethods: ['Kirim', 'Ambil Sendiri'] },
-  { id: 2, name: 'Bibit Alpukat', category: 'Bibit Buah', price: 45000, stock: 15, rating: 4.7, description: 'Bibit Alpukat Mentega super unggulan. Cepat berbuah dalam 2-3 tahun.', image: '', pickupMethods: ['Ambil Sendiri'] },
-  { id: 3, name: 'Bibit Jeruk', category: 'Bibit Buah', price: 25000, stock: 30, rating: 4.9, description: 'Bibit Jeruk Dekopon/Jeruk Santang madu manis segar.', image: '', pickupMethods: ['Kirim'] },
-  { id: 4, name: 'Bibit Jambu Air', category: 'Bibit Buah', price: 30000, stock: 25, rating: 4.9, description: 'Bibit Jambu Air Madu Deli Hijau berbuah manis renyah tanpa biji.', image: '', pickupMethods: ['Kirim', 'Ambil Sendiri'] },
-  { id: 5, name: 'Anggrek', category: 'Tanaman Hias', price: 130000, stock: 12, rating: 4.9, description: 'Tanaman hias Bunga Anggrek Bulan eksotis dengan warna memikat.', image: '', pickupMethods: ['Ambil Sendiri'] },
-  { id: 6, name: 'Kaktus Mini', category: 'Tanaman Hias', price: 20000, stock: 50, rating: 4.7, description: 'Kaktus Hias Mini sukulen cantik. Sangat mudah dirawat.', image: '', pickupMethods: ['Kirim'] },
-  { id: 7, name: 'Bibit Rambutan', category: 'Bibit Buah', price: 35000, stock: 18, rating: 4.9, description: 'Bibit Rambutan Binjai manis lekat berakar kuat.', image: '', pickupMethods: ['Kirim', 'Ambil Sendiri'] },
-  { id: 8, name: 'Bibit Durian', category: 'Bibit Buah', price: 45000, stock: 22, rating: 4.9, description: 'Bibit Durian Bawor/Bhinneka Bawor hasil sambung kaki tiga.', image: '', pickupMethods: ['Kirim', 'Ambil Sendiri'] }
-];
-
-// Initial Mock Activities Database (Same as activities page)
-const INITIAL_ACTIVITIES = [
-  { id: 1, title: 'Sambutan Rektor di Botani Mart', author: 'Joko Suntoso', date: '2026-04-04', category: 'Edukasi & Informasi', summary: 'Kemarin, Botani Mart baru saja meresmikan Botani Cafe yang diresmikan langsung oleh Rektor IPB University.' },
-  { id: 2, title: 'Kunjungan Mahasiswa IPB ke Botani Mart', author: 'Hari Yogya N.', date: '2026-04-03', category: 'Akademik & Riset', summary: 'Mahasiswa IPB Sekolah Vokasi melakukan kunjungan lapangan terpadu ke Botani Mart yang berlokasi di Dramaga.' },
-  { id: 3, title: 'Peresmian Green House Baru', author: 'Joko Suntoso', date: '2026-03-28', category: 'Infrastruktur & Inovasi', summary: 'Botani Mart resmi memperluas area pembibitan dengan meresmikan fasilitas Green House hidroponik modern.' },
-  { id: 4, title: 'Pelatihan Hidroponik Perkotaan', author: 'Ani Lestari', date: '2026-03-22', category: 'Edukasi & Informasi', summary: 'Komunitas urban farming Dramaga mengikuti pelatihan praktis penanaman tanaman hortikultura skala rumahan.' },
-  { id: 5, title: 'Festival Buah Nusantara 2026', author: 'Joko Suntoso', date: '2026-03-15', category: 'Pameran & Komunitas', summary: 'Botani Mart menyelenggarakan pameran keanekaragaman kultivar buah lokal unggul asli Indonesia.' },
-  { id: 6, title: 'Kunjungan Edukasi PAUD Melati', author: 'Ani Lestari', date: '2026-03-10', category: 'Edukasi & Informasi', summary: 'Puluhan anak dari PAUD Melati Bogor melakukan wisata edukasi pertanian untuk pengenalan keanekaragaman hayati.' }
-];
-
-// Mock Recent Orders Database
-const RECENT_ORDERS = [
-  { id: 'BM-2026-001', customer: 'Ananda Senja', product: 'Bibit Mangga (3)', total: 105000, date: '12/03/2026 07:45', status: 'Settlement' },
-  { id: 'BM-2026-002', customer: 'Kiki Rian', product: 'Media Tanam Premium (5)', total: 75000, date: '12/03/2026 08:15', status: 'Settlement' },
-  { id: 'BM-2026-003', customer: 'Siti Sarah', product: 'Bunga Anggrek (1)', total: 130000, date: '12/03/2026 08:30', status: 'Pending' },
-  { id: 'BM-2026-004', customer: 'Bambang Pamungkas', product: 'Kaktus Mini (10)', total: 200000, date: '12/03/2026 09:00', status: 'Settlement' },
-  { id: 'BM-2026-005', customer: 'Dewi Lestari', product: 'Bibit Durian Kaki Tiga (2)', total: 90000, date: '12/03/2026 09:12', status: 'Pending' }
-];
-
-// Sales Analytics Line Graph Coordinates (6 Months: Jan, Feb, Mar, Apr, Mei, Jun)
-const GRAPH_DATA = [
-  { month: 'Jan', sales: 45 },
-  { month: 'Feb', sales: 62 },
-  { month: 'Mar', sales: 85 },
-  { month: 'Apr', sales: 110 },
-  { month: 'Mei', sales: 98 },
-  { month: 'Jun', sales: 128 }
-];
+import { useRouter } from 'next/navigation';
+import AuthButton from '@/components/layout/AuthButton';
 
 export default function AdminDashboardPage() {
+  const router = useRouter();
+
   // Navigation Menu state
   const [activeMenu, setActiveMenu] = useState<'dashboard' | 'produk' | 'kegiatan'>('dashboard');
-  
-  // Data lists states (for stateful CRUD!)
-  const [products, setProducts] = useState(INITIAL_PRODUCTS);
-  const [activities, setActivities] = useState(INITIAL_ACTIVITIES);
-  const [orders, setOrders] = useState(RECENT_ORDERS);
-  
+
+  // Auth & Protection States
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [loadingAuth, setLoadingAuth] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  // Data lists states (filled from API!)
+  const [products, setProducts] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [activities, setActivities] = useState<any[]>([]);
+  const [orders, setOrders] = useState<any[]>([]);
+  const [loadingData, setLoadingData] = useState(true);
+  const [error, setError] = useState('');
+
   // Search states
   const [productSearch, setProductSearch] = useState('');
   const [activitySearch, setActivitySearch] = useState('');
-  
+
+  // Uploading image state indicator
+  const [uploadingImage, setUploadingImage] = useState(false);
+
   // CRUD Modal Form States - Products
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<typeof INITIAL_PRODUCTS[0] | null>(null);
+  const [editingProduct, setEditingProduct] = useState<any | null>(null);
   const [productForm, setProductForm] = useState({
     name: '',
-    category: 'Bibit Buah',
+    category_id: '',
     price: '',
     stock: '',
     description: '',
@@ -98,24 +74,107 @@ export default function AdminDashboardPage() {
   });
 
   // Product Sorting state
-  const [productSort, setProductSort] = useState<{ key: 'name' | 'category' | 'price' | 'stock' | 'rating' | null; order: 'asc' | 'desc' }>({
+  const [productSort, setProductSort] = useState<{ key: 'name' | 'categoryName' | 'price' | 'stock' | 'rating' | null; order: 'asc' | 'desc' }>({
     key: null,
     order: 'asc'
   });
 
   // CRUD Modal Form States - Activities
   const [isActivityModalOpen, setIsActivityModalOpen] = useState(false);
-  const [editingActivity, setEditingActivity] = useState<typeof INITIAL_ACTIVITIES[0] | null>(null);
+  const [editingActivity, setEditingActivity] = useState<any | null>(null);
   const [activityForm, setActivityForm] = useState({
     title: '',
     author: '',
     date: new Date().toISOString().split('T')[0],
     category: 'Edukasi & Informasi',
-    summary: ''
+    summary: '',
+    content: '',
+    published: true
   });
 
+  // Fetch all backend tables
+  const fetchAllData = useCallback(async () => {
+    setLoadingData(true);
+    try {
+      const [productsRes, categoriesRes, activitiesRes, ordersRes] = await Promise.all([
+        fetch('/api/catalog?limit=100'),
+        fetch('/api/admin/categories'),
+        fetch('/api/activities?limit=100&admin=true'),
+        fetch('/api/admin/orders?limit=100')
+      ]);
+
+      if (categoriesRes.ok) {
+        const catData = await categoriesRes.json();
+        if (catData.success) {
+          setCategories(catData.data);
+        }
+      }
+
+      if (productsRes.ok) {
+        const prodData = await productsRes.json();
+        if (prodData.success) {
+          const mappedProds = prodData.data.data.map((p: any) => ({
+            ...p,
+            categoryName: p.category?.name || 'Tanpa Kategori',
+            image: p.image_url || '',
+            pickupMethods: p.pickup_methods || ['Kirim', 'Ambil Sendiri'],
+            rating: p.rating_avg || 4.8
+          }));
+          setProducts(mappedProds);
+        }
+      }
+
+      if (activitiesRes.ok) {
+        const actData = await activitiesRes.json();
+        if (actData.success) {
+          setActivities(actData.data.data);
+        }
+      }
+
+      if (ordersRes.ok) {
+        const ordData = await ordersRes.json();
+        if (ordData.success) {
+          setOrders(ordData.data.data);
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching admin data:', err);
+      setError('Gagal memuat data dari database.');
+    } finally {
+      setLoadingData(false);
+    }
+  }, []);
+
+  // Auth check and role verification
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const res = await fetch(`/api/auth/me?t=${Date.now()}`);
+        if (res.status === 401) {
+          router.push('/login?from=/admin');
+          return;
+        }
+        const data = await res.json();
+        if (data.success && data.data.role === 'Admin') {
+          setCurrentUser(data.data);
+          setIsAdmin(true);
+          setLoadingAuth(false);
+          fetchAllData();
+        } else {
+          setIsAdmin(false);
+          setLoadingAuth(false);
+        }
+      } catch (err) {
+        console.error('Auth verification error:', err);
+        setIsAdmin(false);
+        setLoadingAuth(false);
+      }
+    };
+    checkAuth();
+  }, [router, fetchAllData]);
+
   // Product Sort Handler
-  const handleProductSort = (key: 'name' | 'category' | 'price' | 'stock' | 'rating') => {
+  const handleProductSort = (key: 'name' | 'categoryName' | 'price' | 'stock' | 'rating') => {
     setProductSort(prev => {
       if (prev.key === key) {
         return { key, order: prev.order === 'asc' ? 'desc' : 'asc' };
@@ -126,9 +185,9 @@ export default function AdminDashboardPage() {
 
   // Product Search Filter & Sorting
   const sortedAndFilteredProducts = useMemo(() => {
-    let result = products.filter(p => 
-      p.name.toLowerCase().includes(productSearch.toLowerCase()) || 
-      p.category.toLowerCase().includes(productSearch.toLowerCase())
+    let result = products.filter(p =>
+      p.name.toLowerCase().includes(productSearch.toLowerCase()) ||
+      p.categoryName.toLowerCase().includes(productSearch.toLowerCase())
     );
 
     if (productSort.key) {
@@ -153,29 +212,46 @@ export default function AdminDashboardPage() {
 
   // Activity Search Filter
   const filteredActivities = useMemo(() => {
-    return activities.filter(a => 
-      a.title.toLowerCase().includes(activitySearch.toLowerCase()) || 
+    return activities.filter(a =>
+      a.title.toLowerCase().includes(activitySearch.toLowerCase()) ||
       a.author.toLowerCase().includes(activitySearch.toLowerCase()) ||
       a.category.toLowerCase().includes(activitySearch.toLowerCase())
     );
   }, [activities, activitySearch]);
 
-  // Handle Product Image Upload
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Handle Dynamic Upload for Product Images
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setProductForm(prev => ({ ...prev, image: reader.result as string }));
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    setUploadingImage(true);
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const res = await fetch('/api/upload/plant-image', {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setProductForm(prev => ({ ...prev, image: data.data.publicUrl }));
+        alert('Gambar tanaman berhasil diunggah!');
+      } else {
+        alert(data.error || 'Gagal mengunggah gambar.');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Terjadi kesalahan saat mengunggah gambar.');
+    } finally {
+      setUploadingImage(false);
     }
   };
 
   // Product Form CRUD Submit
-  const handleProductSubmit = (e: React.FormEvent) => {
+  const handleProductSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!productForm.name || !productForm.price || !productForm.stock) {
+    if (!productForm.name || !productForm.price || !productForm.stock || !productForm.category_id) {
       alert('Mohon isi semua field wajib!');
       return;
     }
@@ -184,139 +260,348 @@ export default function AdminDashboardPage() {
       return;
     }
 
-    if (editingProduct) {
-      // Edit mode
-      setProducts(prev => prev.map(p => p.id === editingProduct.id ? {
-        ...p,
-        name: productForm.name,
-        category: productForm.category,
-        price: Number(productForm.price),
-        stock: Number(productForm.stock),
-        description: productForm.description,
-        image: productForm.image,
-        pickupMethods: productForm.pickupMethods
-      } : p));
-      alert('Produk berhasil diperbarui!');
-    } else {
-      // Add mode
-      const newProduct = {
-        id: products.length > 0 ? Math.max(...products.map(p => p.id)) + 1 : 1,
-        name: productForm.name,
-        category: productForm.category,
-        price: Number(productForm.price),
-        stock: Number(productForm.stock),
-        rating: 4.8, // Default rating for new products
-        description: productForm.description,
-        image: productForm.image,
-        pickupMethods: productForm.pickupMethods
-      };
-      setProducts(prev => [...prev, newProduct]);
-      alert('Produk baru berhasil ditambahkan!');
-    }
+    const payload = {
+      name: productForm.name,
+      category_id: productForm.category_id,
+      price: Number(productForm.price),
+      stock: Number(productForm.stock),
+      description: productForm.description,
+      image_url: productForm.image || null,
+      pickup_methods: productForm.pickupMethods,
+      unit: 'buah'
+    };
 
-    // Reset and Close
-    setIsProductModalOpen(false);
-    setEditingProduct(null);
-    setProductForm({ 
-      name: '', 
-      category: 'Bibit Buah', 
-      price: '', 
-      stock: '', 
-      description: '', 
-      image: '', 
-      pickupMethods: ['Kirim', 'Ambil Sendiri'] 
-    });
+    try {
+      let res;
+      if (editingProduct) {
+        // Edit mode
+        res = await fetch(`/api/catalog/${editingProduct.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+      } else {
+        // Add mode
+        res = await fetch('/api/catalog', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+      }
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        alert(editingProduct ? 'Produk berhasil diperbarui!' : 'Produk baru berhasil ditambahkan!');
+        setIsProductModalOpen(false);
+        setEditingProduct(null);
+        setProductForm({
+          name: '',
+          category_id: '',
+          price: '',
+          stock: '',
+          description: '',
+          image: '',
+          pickupMethods: ['Kirim', 'Ambil Sendiri']
+        });
+        fetchAllData();
+      } else {
+        alert(data.error || 'Gagal menyimpan produk.');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Gagal menyimpan produk.');
+    }
   };
 
   // Open Edit Product Modal
-  const openEditProduct = (product: typeof INITIAL_PRODUCTS[0]) => {
+  const openEditProduct = (product: any) => {
     setEditingProduct(product);
     setProductForm({
       name: product.name,
-      category: product.category,
+      category_id: product.category_id || '',
       price: String(product.price),
       stock: String(product.stock),
       description: product.description || '',
-      image: product.image || '',
-      pickupMethods: product.pickupMethods || ['Kirim', 'Ambil Sendiri']
+      image: product.image_url || '',
+      pickupMethods: product.pickup_methods || ['Kirim', 'Ambil Sendiri']
     });
     setIsProductModalOpen(true);
   };
 
   // Delete Product
-  const handleDeleteProduct = (id: number) => {
+  const handleDeleteProduct = async (id: string) => {
     if (confirm('Apakah Anda yakin ingin menghapus produk ini?')) {
-      setProducts(prev => prev.filter(p => p.id !== id));
-      alert('Produk berhasil dihapus!');
+      try {
+        const res = await fetch(`/api/catalog/${id}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          alert('Produk berhasil dihapus!');
+          fetchAllData();
+        } else {
+          alert(data.error || 'Gagal menghapus produk.');
+        }
+      } catch (err) {
+        console.error(err);
+        alert('Gagal menghapus produk.');
+      }
     }
   };
 
   // Activity Form CRUD Submit
-  const handleActivitySubmit = (e: React.FormEvent) => {
+  const handleActivitySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!activityForm.title || !activityForm.author || !activityForm.summary) {
       alert('Mohon isi semua field wajib!');
       return;
     }
 
-    if (editingActivity) {
-      // Edit Mode
-      setActivities(prev => prev.map(a => a.id === editingActivity.id ? {
-        ...a,
-        title: activityForm.title,
-        author: activityForm.author,
-        date: activityForm.date,
-        category: activityForm.category,
-        summary: activityForm.summary
-      } : a));
-      alert('Kegiatan berhasil diperbarui!');
-    } else {
-      // Add Mode
-      const newActivity = {
-        id: activities.length > 0 ? Math.max(...activities.map(a => a.id)) + 1 : 1,
-        title: activityForm.title,
-        author: activityForm.author,
-        date: activityForm.date,
-        category: activityForm.category,
-        summary: activityForm.summary
-      };
-      setActivities(prev => [...prev, newActivity]);
-      alert('Kegiatan baru berhasil ditambahkan!');
-    }
+    const payload = {
+      title: activityForm.title,
+      author: activityForm.author,
+      category: activityForm.category,
+      summary: activityForm.summary,
+      content: activityForm.content || '',
+      published: activityForm.published
+    };
 
-    // Reset and Close
-    setIsActivityModalOpen(false);
-    setEditingActivity(null);
-    setActivityForm({ title: '', author: '', date: new Date().toISOString().split('T')[0], category: 'Edukasi & Informasi', summary: '' });
+    try {
+      let res;
+      if (editingActivity) {
+        // Edit Mode
+        res = await fetch(`/api/activities/${editingActivity.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+      } else {
+        // Add Mode
+        res = await fetch('/api/activities', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+      }
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        alert(editingActivity ? 'Kegiatan berhasil diperbarui!' : 'Kegiatan baru berhasil ditambahkan!');
+        setIsActivityModalOpen(false);
+        setEditingActivity(null);
+        setActivityForm({ title: '', author: '', date: new Date().toISOString().split('T')[0], category: 'Edukasi & Informasi', summary: '', content: '', published: true });
+        fetchAllData();
+      } else {
+        alert(data.error || 'Gagal menyimpan kegiatan.');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Gagal menyimpan kegiatan.');
+    }
   };
 
   // Open Edit Activity Modal
-  const openEditActivity = (activity: typeof INITIAL_ACTIVITIES[0]) => {
+  const openEditActivity = (activity: any) => {
     setEditingActivity(activity);
     setActivityForm({
       title: activity.title,
       author: activity.author,
-      date: activity.date,
+      date: activity.created_at ? activity.created_at.split('T')[0] : new Date().toISOString().split('T')[0],
       category: activity.category,
-      summary: activity.summary
+      summary: activity.summary,
+      content: activity.content || '',
+      published: activity.published ?? true
     });
     setIsActivityModalOpen(true);
   };
 
   // Delete Activity
-  const handleDeleteActivity = (id: number) => {
+  const handleDeleteActivity = async (id: string) => {
     if (confirm('Apakah Anda yakin ingin menghapus kegiatan ini?')) {
-      setActivities(prev => prev.filter(a => a.id !== id));
-      alert('Kegiatan berhasil dihapus!');
+      try {
+        const res = await fetch(`/api/activities/${id}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          alert('Kegiatan berhasil dihapus!');
+          fetchAllData();
+        } else {
+          alert(data.error || 'Gagal menghapus kegiatan.');
+        }
+      } catch (err) {
+        console.error(err);
+        alert('Gagal menghapus kegiatan.');
+      }
     }
   };
 
+  // Manual update of order status by Admin
+  const handleUpdateOrderStatus = async (orderId: string, status: string) => {
+    try {
+      const res = await fetch(`/api/admin/orders/${orderId}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        alert('Status pesanan berhasil diperbarui!');
+        fetchAllData();
+      } else {
+        alert(data.error || 'Gagal memperbarui status pesanan.');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Gagal memperbarui status pesanan.');
+    }
+  };
+
+  // Dynamic statistics from live order database
+  const stats = useMemo(() => {
+    const totalOrders = orders.length;
+
+    const revenue = orders.reduce((sum, o) => {
+      if (['paid', 'processing', 'shipped', 'completed'].includes(o.status)) {
+        return sum + o.total_amount;
+      }
+      return sum;
+    }, 0);
+
+    const onProgress = orders.filter(o =>
+      ['pending', 'paid', 'processing', 'shipped'].includes(o.status)
+    ).length;
+
+    const uniqueCustomers = new Set(orders.map(o => o.user_id)).size;
+
+    return {
+      totalOrders,
+      revenue,
+      onProgress,
+      uniqueCustomers
+    };
+  }, [orders]);
+
+  // Aggregated dynamic monthly revenues for Sales SVG Chart
+  const graphData = useMemo(() => {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+    const currentYear = new Date().getFullYear();
+    const monthlySum = Array(12).fill(0);
+
+    orders.forEach(o => {
+      if (['paid', 'processing', 'shipped', 'completed'].includes(o.status)) {
+        const date = new Date(o.created_at);
+        if (date.getFullYear() === currentYear) {
+          monthlySum[date.getMonth()] += o.total_amount;
+        }
+      }
+    });
+
+    return [
+      { month: 'Jan', sales: monthlySum[0] },
+      { month: 'Feb', sales: monthlySum[1] },
+      { month: 'Mar', sales: monthlySum[2] },
+      { month: 'Apr', sales: monthlySum[3] },
+      { month: 'Mei', sales: monthlySum[4] },
+      { month: 'Jun', sales: monthlySum[5] }
+    ];
+  }, [orders]);
+
+  // SVG Scaled points based on maximum sales revenue
+  const scaledPoints = useMemo(() => {
+    const maxVal = Math.max(...graphData.map(d => d.sales), 1000000); // minimum scale helper
+    const xCoords = [60, 150, 240, 330, 420, 540];
+
+    return graphData.map((d, i) => {
+      // Map value between 190 (zero) and 40 (maxVal)
+      const y = 190 - (d.sales / maxVal) * 150;
+      return {
+        x: xCoords[i],
+        y,
+        val: d.sales
+      };
+    });
+  }, [graphData]);
+
+  // Dynamic SVG drawing paths
+  const svgPath = useMemo(() => {
+    if (scaledPoints.length === 0) return '';
+    return scaledPoints.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x},${p.y}`).join(' ');
+  }, [scaledPoints]);
+
+  const svgAreaPath = useMemo(() => {
+    if (scaledPoints.length === 0) return '';
+    return `${svgPath} L 540,200 L 60,200 Z`;
+  }, [scaledPoints, svgPath]);
+
+  // Aggregated Best Selling Products from database orders
+  const topProducts = useMemo(() => {
+    const salesMap: Record<string, { name: string; quantity: number }> = {};
+    orders.forEach(o => {
+      if (['paid', 'processing', 'shipped', 'completed'].includes(o.status) && o.order_items) {
+        o.order_items.forEach((item: any) => {
+          if (!salesMap[item.plant_id]) {
+            salesMap[item.plant_id] = { name: item.plant_name, quantity: 0 };
+          }
+          salesMap[item.plant_id].quantity += item.quantity;
+        });
+      }
+    });
+
+    const list = Object.values(salesMap).sort((a, b) => b.quantity - a.quantity);
+    const maxQty = list.length > 0 ? list[0].quantity : 1;
+
+    return list.slice(0, 4).map(item => ({
+      ...item,
+      percentage: Math.round((item.quantity / maxQty) * 100)
+    }));
+  }, [orders]);
+
+  // ─── Loading Auth Check ────────────────────────────────────────────────
+  if (loadingAuth) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-[#f7f9f7] text-[#274235] font-sans">
+        <div className="flex flex-col items-center gap-4 p-8 bg-white/80 backdrop-blur-md rounded-3xl border border-[#e2ede7] shadow-xl">
+          <Loader2 className="w-10 h-10 animate-spin text-brand-emerald" />
+          <p className="text-sm font-semibold tracking-wide text-brand-sage animate-pulse">Memverifikasi Hak Akses...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // ─── Access Denied View ───────────────────────────────────────────────
+  if (!isAdmin) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-[#f7f9f7] text-[#274235] font-sans p-4">
+        <div className="max-w-md w-full flex flex-col items-center text-center p-8 sm:p-10 bg-white rounded-3xl border border-[#e2ede7] shadow-2xl">
+          <div className="w-20 h-20 rounded-full bg-rose-50 flex items-center justify-center mb-6 border border-rose-100">
+            <ShieldAlert className="w-10 h-10 text-rose-600 animate-bounce" />
+          </div>
+          <h1 className="text-2xl font-bold font-heading text-brand-forest mb-3">Akses Ditolak</h1>
+          <p className="text-brand-sage text-sm leading-relaxed mb-8">
+            Halaman ini hanya dapat diakses oleh Administrator BotaniMart. Silakan kembali ke beranda atau masuk menggunakan akun admin.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3 w-full">
+            <Link
+              href="/"
+              className="flex-1 py-3 px-6 rounded-full bg-brand-emerald hover:bg-brand-forest text-white text-xs font-bold uppercase tracking-wider text-center shadow-md transition-all cursor-pointer"
+            >
+              Kembali ke Beranda
+            </Link>
+            <Link
+              href="/login?from=/admin"
+              className="flex-1 py-3 px-6 rounded-full border border-[#e2ede7] hover:bg-brand-cream text-brand-forest text-xs font-bold uppercase tracking-wider text-center transition-all cursor-pointer"
+            >
+              Masuk Akun Admin
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col min-h-screen bg-[#f7f9f7] font-sans antialiased text-[#274235]">
-      
+
       {/* 1. Header Area */}
       <header className="sticky top-0 z-40 w-full bg-white border-b border-[#e2ede7] h-20 px-6 sm:px-8 flex items-center justify-between shadow-sm">
-        
+
         {/* Logo */}
         <Link href="/" className="flex items-center group">
           <div className="relative w-56 h-14 transition-all duration-300 group-hover:scale-102">
@@ -335,27 +620,24 @@ export default function AdminDashboardPage() {
           <span className="hidden sm:inline text-xs font-bold uppercase tracking-widest text-brand-emerald bg-brand-emerald/10 border border-brand-emerald/10 px-3 py-1 rounded-full">
             Admin Panel
           </span>
-          <div className="w-10 h-10 rounded-full bg-brand-forest flex items-center justify-center text-white font-extrabold shadow-md border border-[#e2ede7] cursor-pointer" title="Admin Account">
-            A
-          </div>
+          <AuthButton />
         </div>
       </header>
 
       {/* 2. Main Page Layout (Sidebar + Content Panels) */}
       <div className="flex-1 flex flex-col md:flex-row">
-        
+
         {/* Sidebar Navigation Panel (Solid Forest Green) */}
         <aside className="w-full md:w-64 bg-brand-forest text-white shrink-0 flex flex-row md:flex-col border-r border-brand-forest/20 shadow-lg md:pt-6">
           <div className="flex-1 flex flex-row md:flex-col justify-around md:justify-start md:space-y-1.5 px-3 py-3 md:py-0 w-full overflow-x-auto md:overflow-x-visible">
-            
+
             {/* Dashboard Sidebar Button */}
             <button
               onClick={() => setActiveMenu('dashboard')}
-              className={`w-full flex items-center gap-3.5 px-4.5 py-3.5 rounded-2xl text-sm font-heading font-extrabold tracking-wide uppercase transition-all duration-300 shrink-0 cursor-pointer ${
-                activeMenu === 'dashboard' 
-                  ? 'bg-[#345947] text-brand-lime shadow-inner' 
-                  : 'text-white/70 hover:text-white hover:bg-white/5'
-              }`}
+              className={`w-full flex items-center gap-3.5 px-4.5 py-3.5 rounded-2xl text-sm font-heading font-extrabold tracking-wide uppercase transition-all duration-300 shrink-0 cursor-pointer ${activeMenu === 'dashboard'
+                ? 'bg-[#345947] text-brand-lime shadow-inner'
+                : 'text-white/70 hover:text-white hover:bg-white/5'
+                }`}
             >
               <LayoutDashboard className="w-5 h-5 shrink-0" />
               <span>Dashboard</span>
@@ -364,11 +646,10 @@ export default function AdminDashboardPage() {
             {/* Kelola Produk Sidebar Button */}
             <button
               onClick={() => setActiveMenu('produk')}
-              className={`w-full flex items-center gap-3.5 px-4.5 py-3.5 rounded-2xl text-sm font-heading font-extrabold tracking-wide uppercase transition-all duration-300 shrink-0 cursor-pointer ${
-                activeMenu === 'produk' 
-                  ? 'bg-[#345947] text-brand-lime shadow-inner' 
-                  : 'text-white/70 hover:text-white hover:bg-white/5'
-              }`}
+              className={`w-full flex items-center gap-3.5 px-4.5 py-3.5 rounded-2xl text-sm font-heading font-extrabold tracking-wide uppercase transition-all duration-300 shrink-0 cursor-pointer ${activeMenu === 'produk'
+                ? 'bg-[#345947] text-brand-lime shadow-inner'
+                : 'text-white/70 hover:text-white hover:bg-white/5'
+                }`}
             >
               <Sprout className="w-5 h-5 shrink-0" />
               <span>Kelola Produk</span>
@@ -377,11 +658,10 @@ export default function AdminDashboardPage() {
             {/* Kelola Kegiatan Sidebar Button */}
             <button
               onClick={() => setActiveMenu('kegiatan')}
-              className={`w-full flex items-center gap-3.5 px-4.5 py-3.5 rounded-2xl text-sm font-heading font-extrabold tracking-wide uppercase transition-all duration-300 shrink-0 cursor-pointer ${
-                activeMenu === 'kegiatan' 
-                  ? 'bg-[#345947] text-brand-lime shadow-inner' 
-                  : 'text-white/70 hover:text-white hover:bg-white/5'
-              }`}
+              className={`w-full flex items-center gap-3.5 px-4.5 py-3.5 rounded-2xl text-sm font-heading font-extrabold tracking-wide uppercase transition-all duration-300 shrink-0 cursor-pointer ${activeMenu === 'kegiatan'
+                ? 'bg-[#345947] text-brand-lime shadow-inner'
+                : 'text-white/70 hover:text-white hover:bg-white/5'
+                }`}
             >
               <CalendarIcon className="w-5 h-5 shrink-0" />
               <span>Kelola Kegiatan</span>
@@ -392,11 +672,11 @@ export default function AdminDashboardPage() {
 
         {/* 3. Main Content Display Panel */}
         <main className="flex-1 p-6 sm:p-8 md:p-10 overflow-y-auto max-w-7xl mx-auto w-full animate-fade-in-up">
-          
+
           {/* MENU 1: OVERVIEW DASHBOARD */}
           {activeMenu === 'dashboard' && (
             <div className="space-y-8 text-left">
-              
+
               {/* Title Section */}
               <div className="space-y-1">
                 <h1 className="font-heading font-black text-3xl text-brand-forest">
@@ -409,17 +689,21 @@ export default function AdminDashboardPage() {
 
               {/* Four Stat Cards row */}
               <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                
+
                 {/* Stat 1: Total Orders */}
                 <div className="bg-white rounded-3xl p-6 border border-[#e2ede7] shadow-sm flex items-center gap-5 hover:scale-[1.01] transition-transform duration-300">
                   <div className="w-14 h-14 rounded-2xl bg-brand-sage/10 text-brand-sage flex items-center justify-center shrink-0">
                     <ShoppingBag className="w-6.5 h-6.5" />
                   </div>
-                  <div className="space-y-1">
+                  <div className="space-y-1 w-full text-left">
                     <span className="text-[10px] font-bold text-brand-sage uppercase tracking-wider block">Total Pesanan</span>
-                    <span className="text-3xl font-heading font-black text-brand-forest block">128</span>
+                    {loadingData ? (
+                      <Loader2 className="w-6 h-6 animate-spin text-brand-emerald" />
+                    ) : (
+                      <span className="text-3xl font-heading font-black text-brand-forest block">{stats.totalOrders}</span>
+                    )}
                     <span className="text-[9px] text-[#50685c]/60 font-semibold block flex items-center gap-1">
-                      <Clock className="w-3 h-3" /> Lat. update: 12/03/2026 08:00
+                      <Clock className="w-3 h-3" /> Live updated
                     </span>
                   </div>
                 </div>
@@ -429,11 +713,17 @@ export default function AdminDashboardPage() {
                   <div className="w-14 h-14 rounded-2xl bg-amber-400/10 text-amber-500 flex items-center justify-center shrink-0">
                     <DollarSign className="w-6.5 h-6.5" />
                   </div>
-                  <div className="space-y-1">
-                    <span className="text-[10px] font-bold text-brand-sage uppercase tracking-wider block">Pendapatan bulan ini</span>
-                    <span className="text-3xl font-heading font-black text-brand-forest block">Rp1,9 juta</span>
+                  <div className="space-y-1 w-full text-left">
+                    <span className="text-[10px] font-bold text-brand-sage uppercase tracking-wider block">Pendapatan Terverifikasi</span>
+                    {loadingData ? (
+                      <Loader2 className="w-6 h-6 animate-spin text-brand-emerald" />
+                    ) : (
+                      <span className="text-xl sm:text-2xl font-heading font-black text-brand-forest block">
+                        Rp {stats.revenue.toLocaleString('id-ID')}
+                      </span>
+                    )}
                     <span className="text-[9px] text-[#50685c]/60 font-semibold block flex items-center gap-1">
-                      <Clock className="w-3 h-3" /> Lat. update: 12/03/2026 08:30
+                      <Clock className="w-3 h-3" /> Dari pesanan lunas
                     </span>
                   </div>
                 </div>
@@ -443,11 +733,15 @@ export default function AdminDashboardPage() {
                   <div className="w-14 h-14 rounded-2xl bg-red-400/10 text-red-500 flex items-center justify-center shrink-0">
                     <TrendingUp className="w-6.5 h-6.5" />
                   </div>
-                  <div className="space-y-1">
-                    <span className="text-[10px] font-bold text-brand-sage uppercase tracking-wider block">Pesanan On-Progress</span>
-                    <span className="text-3xl font-heading font-black text-brand-forest block">5</span>
+                  <div className="space-y-1 w-full text-left">
+                    <span className="text-[10px] font-bold text-brand-sage uppercase tracking-wider block">Pesanan Aktif</span>
+                    {loadingData ? (
+                      <Loader2 className="w-6 h-6 animate-spin text-brand-emerald" />
+                    ) : (
+                      <span className="text-3xl font-heading font-black text-brand-forest block">{stats.onProgress}</span>
+                    )}
                     <span className="text-[9px] text-[#50685c]/60 font-semibold block flex items-center gap-1">
-                      <Clock className="w-3 h-3" /> Lat. update: 12/03/2026 08:00
+                      <Clock className="w-3 h-3" /> Menunggu penyelesaian
                     </span>
                   </div>
                 </div>
@@ -457,11 +751,15 @@ export default function AdminDashboardPage() {
                   <div className="w-14 h-14 rounded-2xl bg-brand-emerald/10 text-brand-emerald flex items-center justify-center shrink-0">
                     <Users className="w-6.5 h-6.5" />
                   </div>
-                  <div className="space-y-1">
-                    <span className="text-[10px] font-bold text-brand-sage uppercase tracking-wider block">Jumlah Customer</span>
-                    <span className="text-3xl font-heading font-black text-brand-forest block">254</span>
+                  <div className="space-y-1 w-full text-left">
+                    <span className="text-[10px] font-bold text-brand-sage uppercase tracking-wider block">Total Customer</span>
+                    {loadingData ? (
+                      <Loader2 className="w-6 h-6 animate-spin text-brand-emerald" />
+                    ) : (
+                      <span className="text-3xl font-heading font-black text-brand-forest block">{stats.uniqueCustomers}</span>
+                    )}
                     <span className="text-[9px] text-[#50685c]/60 font-semibold block flex items-center gap-1">
-                      <Clock className="w-3 h-3" /> Lat. update: 12/03/2026 08:30
+                      <Clock className="w-3 h-3" /> Transaksi unik
                     </span>
                   </div>
                 </div>
@@ -470,7 +768,7 @@ export default function AdminDashboardPage() {
 
               {/* Graphics Section Grid */}
               <div className="grid lg:grid-cols-12 gap-8">
-                
+
                 {/* Left Large Column: Custom SVG Sales Graph */}
                 <div className="lg:col-span-8 bg-white rounded-3xl p-6 border border-[#e2ede7] shadow-sm space-y-6">
                   <div className="flex items-center justify-between border-b border-[#e2ede7] pb-4">
@@ -485,32 +783,36 @@ export default function AdminDashboardPage() {
                   {/* SVG Chart Container */}
                   <div className="relative w-full h-64 sm:h-72 select-none">
                     <svg className="w-full h-full" viewBox="0 0 600 240" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      
+
                       {/* Grid Horizontal Guidelines */}
                       <line x1="40" y1="40" x2="560" y2="40" stroke="#f4f6f4" strokeWidth="1.5" />
                       <line x1="40" y1="90" x2="560" y2="90" stroke="#f4f6f4" strokeWidth="1.5" />
                       <line x1="40" y1="140" x2="560" y2="140" stroke="#f4f6f4" strokeWidth="1.5" strokeDasharray="4 4" />
                       <line x1="40" y1="190" x2="560" y2="190" stroke="#f4f6f4" strokeWidth="1.5" />
-                      
+
                       {/* Vertical axes */}
                       <line x1="40" y1="20" x2="40" y2="200" stroke="#e2ede7" strokeWidth="1" />
                       <line x1="560" y1="20" x2="560" y2="200" stroke="#e2ede7" strokeWidth="1" />
 
                       {/* SVG Line path with smooth interpolation */}
-                      <path 
-                        d="M 60,160 Q 150,130 240,95 T 420,70 T 540,40" 
-                        stroke="#345947" 
-                        strokeWidth="3.5" 
-                        strokeLinecap="round" 
-                        fill="none" 
-                      />
+                      {svgPath && (
+                        <path
+                          d={svgPath}
+                          stroke="#345947"
+                          strokeWidth="3.5"
+                          strokeLinecap="round"
+                          fill="none"
+                        />
+                      )}
 
                       {/* Soft Green Area Gradient under Sales Path */}
-                      <path 
-                        d="M 60,160 Q 150,130 240,95 T 420,70 T 540,40 L 540,200 L 60,200 Z" 
-                        fill="url(#gradient-fill)" 
-                        opacity="0.12" 
-                      />
+                      {svgAreaPath && (
+                        <path
+                          d={svgAreaPath}
+                          fill="url(#gradient-fill)"
+                          opacity="0.12"
+                        />
+                      )}
 
                       {/* Gradient Definitions */}
                       <defs>
@@ -521,20 +823,26 @@ export default function AdminDashboardPage() {
                       </defs>
 
                       {/* Interactive Circles / Data points */}
-                      <circle cx="60" cy="160" r="5" fill="#345947" stroke="#ffffff" strokeWidth="2" />
-                      <circle cx="150" cy="130" r="5" fill="#345947" stroke="#ffffff" strokeWidth="2" />
-                      <circle cx="240" cy="95" r="5" fill="#345947" stroke="#ffffff" strokeWidth="2" />
-                      <circle cx="330" cy="85" r="5" fill="#345947" stroke="#ffffff" strokeWidth="2" />
-                      <circle cx="420" cy="70" r="5" fill="#345947" stroke="#ffffff" strokeWidth="2" />
-                      <circle cx="540" cy="40" r="5" fill="#345947" stroke="#ffffff" strokeWidth="2" />
+                      {scaledPoints.map((p, idx) => (
+                        <circle key={idx} cx={p.x} cy={p.y} r="5" fill="#345947" stroke="#ffffff" strokeWidth="2" />
+                      ))}
 
                       {/* Value labels overlay */}
-                      <text x="60" y="145" fontSize="10" fill="#274235" fontWeight="bold" textAnchor="middle">Rp45jt</text>
-                      <text x="150" y="115" fontSize="10" fill="#274235" fontWeight="bold" textAnchor="middle">Rp62jt</text>
-                      <text x="240" y="80" fontSize="10" fill="#274235" fontWeight="bold" textAnchor="middle">Rp85jt</text>
-                      <text x="330" y="70" fontSize="10" fill="#274235" fontWeight="bold" textAnchor="middle">Rp110jt</text>
-                      <text x="420" y="55" fontSize="10" fill="#274235" fontWeight="bold" textAnchor="middle">Rp98jt</text>
-                      <text x="540" y="25" fontSize="10" fill="#274235" fontWeight="bold" textAnchor="middle">Rp128jt</text>
+                      {scaledPoints.map((p, idx) => {
+                        let text = 'Rp0';
+                        if (p.val >= 1000000) {
+                          text = `Rp${(p.val / 1000000).toFixed(1)}jt`;
+                        } else if (p.val >= 1000) {
+                          text = `Rp${(p.val / 1000).toFixed(0)}rb`;
+                        } else if (p.val > 0) {
+                          text = `Rp${p.val}`;
+                        }
+                        return (
+                          <text key={idx} x={p.x} y={p.y - 12} fontSize="9" fill="#274235" fontWeight="bold" textAnchor="middle">
+                            {text}
+                          </text>
+                        );
+                      })}
 
                       {/* Month names Y labels */}
                       <text x="60" y="218" fontSize="11" fill="#50685c" fontWeight="bold" textAnchor="middle">Jan</text>
@@ -559,50 +867,24 @@ export default function AdminDashboardPage() {
 
                   {/* List of best-selling products with progress bars */}
                   <div className="space-y-4 flex-1 flex flex-col justify-center">
-                    
-                    {/* Item 1 */}
-                    <div className="space-y-1">
-                      <div className="flex justify-between text-xs font-bold text-brand-forest">
-                        <span>Bibit Alpukat</span>
-                        <span>42 Terjual</span>
-                      </div>
-                      <div className="w-full bg-[#f0f4f1] h-2 rounded-full overflow-hidden">
-                        <div className="bg-brand-emerald h-full rounded-full" style={{ width: '84%' }}></div>
-                      </div>
-                    </div>
 
-                    {/* Item 2 */}
-                    <div className="space-y-1">
-                      <div className="flex justify-between text-xs font-bold text-brand-forest">
-                        <span>Bibit Durian</span>
-                        <span>38 Terjual</span>
+                    {topProducts.length === 0 ? (
+                      <div className="text-center py-6 text-xs font-semibold text-brand-sage">
+                        Belum ada data penjualan.
                       </div>
-                      <div className="w-full bg-[#f0f4f1] h-2 rounded-full overflow-hidden">
-                        <div className="bg-brand-emerald h-full rounded-full" style={{ width: '76%' }}></div>
-                      </div>
-                    </div>
-
-                    {/* Item 3 */}
-                    <div className="space-y-1">
-                      <div className="flex justify-between text-xs font-bold text-brand-forest">
-                        <span>Anggrek Bulan</span>
-                        <span>29 Terjual</span>
-                      </div>
-                      <div className="w-full bg-[#f0f4f1] h-2 rounded-full overflow-hidden">
-                        <div className="bg-brand-emerald h-full rounded-full" style={{ width: '58%' }}></div>
-                      </div>
-                    </div>
-
-                    {/* Item 4 */}
-                    <div className="space-y-1">
-                      <div className="flex justify-between text-xs font-bold text-brand-forest">
-                        <span>Kaktus Mini</span>
-                        <span>25 Terjual</span>
-                      </div>
-                      <div className="w-full bg-[#f0f4f1] h-2 rounded-full overflow-hidden">
-                        <div className="bg-brand-emerald h-full rounded-full" style={{ width: '50%' }}></div>
-                      </div>
-                    </div>
+                    ) : (
+                      topProducts.map((item, idx) => (
+                        <div key={idx} className="space-y-1 text-left">
+                          <div className="flex justify-between text-xs font-bold text-brand-forest">
+                            <span className="truncate max-w-[150px]">{item.name}</span>
+                            <span>{item.quantity} Terjual</span>
+                          </div>
+                          <div className="w-full bg-[#f0f4f1] h-2 rounded-full overflow-hidden">
+                            <div className="bg-brand-emerald h-full rounded-full" style={{ width: `${item.percentage}%` }}></div>
+                          </div>
+                        </div>
+                      ))
+                    )}
 
                   </div>
                 </div>
@@ -632,28 +914,50 @@ export default function AdminDashboardPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-brand-cream/50 text-sm font-semibold text-brand-forest">
-                      {orders.map(order => (
-                        <tr key={order.id} className="hover:bg-brand-cream/20 transition-colors">
-                          <td className="py-4.5 pl-4 font-heading font-bold text-brand-emerald">{order.id}</td>
-                          <td className="py-4.5">{order.customer}</td>
-                          <td className="py-4.5 text-brand-sage">{order.product}</td>
-                          <td className="py-4.5">Rp {order.total.toLocaleString('id-ID')}</td>
-                          <td className="py-4.5 text-center">
-                            <span className={`inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-bold ${
-                              order.status === 'Settlement' 
-                                ? 'bg-emerald-50/80 text-emerald-700 border border-emerald-100' 
-                                : 'bg-amber-50/80 text-amber-600 border border-amber-100'
-                            }`}>
-                              {order.status === 'Settlement' ? (
-                                <CheckCircle2 className="w-3.5 h-3.5" />
-                              ) : (
-                                <AlertCircle className="w-3.5 h-3.5" />
-                              )}
-                              {order.status}
-                            </span>
+                      {orders.map(order => {
+                        const customerName = order.user?.full_name || order.user?.email || 'Guest';
+                        const itemsStr = order.order_items
+                          ? order.order_items.map((i: any) => `${i.plant_name} (${i.quantity})`).join(', ')
+                          : 'Tanpa Item';
+
+                        return (
+                          <tr key={order.id} className="hover:bg-brand-cream/20 transition-colors">
+                            <td className="py-4.5 pl-4 font-heading font-bold text-brand-emerald text-xs truncate max-w-[120px]" title={order.id}>
+                              {order.midtrans_order_id || order.id.slice(0, 8)}
+                            </td>
+                            <td className="py-4.5 text-xs truncate max-w-[120px]" title={customerName}>{customerName}</td>
+                            <td className="py-4.5 text-xs text-brand-sage truncate max-w-[180px]" title={itemsStr}>{itemsStr}</td>
+                            <td className="py-4.5 text-xs font-bold">Rp {order.total_amount.toLocaleString('id-ID')}</td>
+                            <td className="py-4.5 text-center">
+                              <select
+                                value={order.status}
+                                onChange={(e) => handleUpdateOrderStatus(order.id, e.target.value)}
+                                className={`text-[10px] font-bold border rounded-full px-2.5 py-1 focus:outline-none cursor-pointer ${order.status === 'completed'
+                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                    : order.status === 'canceled' || order.status === 'expired'
+                                      ? 'bg-rose-50 text-rose-700 border-rose-200'
+                                      : 'bg-amber-50 text-amber-700 border-amber-200'
+                                  }`}
+                              >
+                                <option value="pending">Pending</option>
+                                <option value="paid">Paid</option>
+                                <option value="processing">Processing</option>
+                                <option value="shipped">Shipped</option>
+                                <option value="completed">Completed</option>
+                                <option value="canceled">Canceled</option>
+                                <option value="expired">Expired</option>
+                              </select>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                      {orders.length === 0 && (
+                        <tr>
+                          <td colSpan={5} className="py-8 text-center text-xs font-semibold text-brand-sage">
+                            Belum ada transaksi.
                           </td>
                         </tr>
-                      ))}
+                      )}
                     </tbody>
                   </table>
                 </div>
@@ -666,7 +970,7 @@ export default function AdminDashboardPage() {
           {/* MENU 2: KELOLA PRODUK (CRUD) */}
           {activeMenu === 'produk' && (
             <div className="space-y-8 text-left">
-              
+
               {/* Header Title Section */}
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-[#e2ede7] pb-6">
                 <div className="space-y-1">
@@ -678,17 +982,17 @@ export default function AdminDashboardPage() {
                   </p>
                 </div>
 
-                 <button
+                <button
                   onClick={() => {
                     setEditingProduct(null);
-                    setProductForm({ 
-                      name: '', 
-                      category: 'Bibit Buah', 
-                      price: '', 
-                      stock: '', 
-                      description: '', 
-                      image: '', 
-                      pickupMethods: ['Kirim', 'Ambil Sendiri'] 
+                    setProductForm({
+                      name: '',
+                      category_id: '',
+                      price: '',
+                      stock: '',
+                      description: '',
+                      image: '',
+                      pickupMethods: ['Kirim', 'Ambil Sendiri']
                     });
                     setIsProductModalOpen(true);
                   }}
@@ -720,7 +1024,7 @@ export default function AdminDashboardPage() {
                     <thead>
                       <tr className="border-b border-brand-cream bg-brand-cream/10 text-left text-xs font-bold text-brand-sage uppercase tracking-wider select-none">
                         <th className="py-4.5 pl-6 w-16">ID</th>
-                        <th 
+                        <th
                           onClick={() => handleProductSort('name')}
                           className="py-4.5 cursor-pointer hover:bg-brand-cream/20 transition-colors"
                         >
@@ -729,16 +1033,16 @@ export default function AdminDashboardPage() {
                             <ArrowUpDown className={`w-3 h-3 transition-colors ${productSort.key === 'name' ? 'text-brand-emerald' : 'text-zinc-400'}`} />
                           </div>
                         </th>
-                        <th 
-                          onClick={() => handleProductSort('category')}
+                        <th
+                          onClick={() => handleProductSort('categoryName')}
                           className="py-4.5 cursor-pointer hover:bg-brand-cream/20 transition-colors"
                         >
                           <div className="flex items-center gap-1.5">
                             <span>Kategori</span>
-                            <ArrowUpDown className={`w-3 h-3 transition-colors ${productSort.key === 'category' ? 'text-brand-emerald' : 'text-zinc-400'}`} />
+                            <ArrowUpDown className={`w-3 h-3 transition-colors ${productSort.key === 'categoryName' ? 'text-brand-emerald' : 'text-zinc-400'}`} />
                           </div>
                         </th>
-                        <th 
+                        <th
                           onClick={() => handleProductSort('price')}
                           className="py-4.5 cursor-pointer hover:bg-brand-cream/20 transition-colors"
                         >
@@ -747,7 +1051,7 @@ export default function AdminDashboardPage() {
                             <ArrowUpDown className={`w-3 h-3 transition-colors ${productSort.key === 'price' ? 'text-brand-emerald' : 'text-zinc-400'}`} />
                           </div>
                         </th>
-                        <th 
+                        <th
                           onClick={() => handleProductSort('stock')}
                           className="py-4.5 cursor-pointer hover:bg-brand-cream/20 transition-colors"
                         >
@@ -757,7 +1061,7 @@ export default function AdminDashboardPage() {
                           </div>
                         </th>
                         <th className="py-4.5">Metode Pengambilan</th>
-                        <th 
+                        <th
                           onClick={() => handleProductSort('rating')}
                           className="py-4.5 cursor-pointer hover:bg-brand-cream/20 transition-colors"
                         >
@@ -773,7 +1077,7 @@ export default function AdminDashboardPage() {
                       {sortedAndFilteredProducts.map(product => (
                         <tr key={product.id} className="hover:bg-brand-cream/10 transition-colors">
                           <td className="py-4.5 pl-6 text-brand-sage">#{product.id}</td>
-                          
+
                           {/* Nama Produk with Image Thumbnail */}
                           <td className="py-4.5">
                             <div className="flex items-center gap-3.5">
@@ -787,42 +1091,41 @@ export default function AdminDashboardPage() {
                               <span className="font-bold text-[#1e3329] text-sm">{product.name}</span>
                             </div>
                           </td>
-                          
-                          <td className="py-4.5 text-xs font-bold text-brand-emerald uppercase tracking-wider">{product.category}</td>
+
+                          <td className="py-4.5 text-xs font-bold text-brand-emerald uppercase tracking-wider">{product.categoryName}</td>
                           <td className="py-4.5 font-bold">Rp {product.price.toLocaleString('id-ID')}</td>
-                          
+
                           {/* Stock Status Capsule */}
                           <td className="py-4.5">
                             <div className="flex flex-col gap-1 text-left">
-                              <span className={`inline-flex items-center justify-center w-24 py-1 rounded-full text-[9px] font-bold tracking-wide uppercase border ${
-                                product.stock > 0
-                                  ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
-                                  : 'bg-rose-50 text-rose-700 border-rose-100'
-                              }`}>
+                              <span className={`inline-flex items-center justify-center w-24 py-1 rounded-full text-[9px] font-bold tracking-wide uppercase border ${product.stock > 0
+                                ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
+                                : 'bg-rose-50 text-rose-700 border-rose-100'
+                                }`}>
                                 {product.stock > 0 ? 'In Stock' : 'Out of Stock'}
                               </span>
                               <span className="text-[11px] text-brand-sage pl-1">{product.stock} pcs</span>
                             </div>
                           </td>
-                          
+
                           {/* Pickup Methods Column */}
                           <td className="py-4.5">
                             <div className="flex flex-wrap gap-1 max-w-[150px]">
-                              {(product.pickupMethods || ['Kirim', 'Ambil Sendiri']).map((method, idx) => (
+                              {(product.pickupMethods || ['Kirim', 'Ambil Sendiri']).map((method: string, idx: number) => (
                                 <span key={idx} className="inline-block text-[9px] font-bold uppercase tracking-wider text-[#223e30] bg-[#eaf4ee] px-2 py-0.5 rounded border border-[#daebd3]">
                                   {method}
                                 </span>
                               ))}
                             </div>
                           </td>
-                          
+
                           <td className="py-4.5">
                             <div className="flex items-center gap-1 text-xs text-brand-sage font-bold">
                               <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
                               <span>{product.rating}</span>
                             </div>
                           </td>
-                          
+
                           <td className="py-4.5 text-center pr-6">
                             <div className="flex items-center justify-center gap-2">
                               {/* Edit Action Button */}
@@ -863,7 +1166,7 @@ export default function AdminDashboardPage() {
           {/* MENU 3: KELOLA KEGIATAN (CRUD) */}
           {activeMenu === 'kegiatan' && (
             <div className="space-y-8 text-left">
-              
+
               {/* Header Title Section */}
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-[#e2ede7] pb-6">
                 <div className="space-y-1">
@@ -878,7 +1181,7 @@ export default function AdminDashboardPage() {
                 <button
                   onClick={() => {
                     setEditingActivity(null);
-                    setActivityForm({ title: '', author: '', date: new Date().toISOString().split('T')[0], category: 'Edukasi & Informasi', summary: '' });
+                    setActivityForm({ title: '', author: '', date: new Date().toISOString().split('T')[0], category: 'Edukasi & Informasi', summary: '', content: '', published: true });
                     setIsActivityModalOpen(true);
                   }}
                   className="inline-flex items-center justify-center gap-1.5 px-6 py-3.5 rounded-full bg-brand-emerald hover:bg-brand-forest text-white text-xs font-extrabold tracking-wider uppercase shadow-md hover:shadow-lg transition-all cursor-pointer shrink-0"
@@ -968,13 +1271,13 @@ export default function AdminDashboardPage() {
       {isProductModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-md bg-black/40 animate-fade-in-up">
           <div className="bg-white/95 rounded-[36px] border border-white/20 shadow-2xl w-full max-w-xl overflow-hidden animate-fade-in-up relative">
-            
+
             {/* Modal Title header */}
             <div className="bg-brand-cream border-b border-[#e2ede7] px-8 py-5 flex items-center justify-between">
               <h3 className="font-heading font-extrabold text-lg text-[#1e3329]">
                 {editingProduct ? 'Edit Tanaman/Produk' : 'Tambah Tanaman/Produk Baru'}
               </h3>
-              <button 
+              <button
                 onClick={() => setIsProductModalOpen(false)}
                 className="p-1.5 rounded-full hover:bg-brand-lime/20 text-brand-sage hover:text-brand-forest transition-colors cursor-pointer"
                 aria-label="Tutup"
@@ -985,7 +1288,7 @@ export default function AdminDashboardPage() {
 
             {/* Modal Body Form fields */}
             <form onSubmit={handleProductSubmit} className="p-8 space-y-4 text-left">
-              
+
               {/* Product photo upload block */}
               <div className="flex flex-col">
                 <label className="text-sm font-semibold text-[#1e3329] mb-1.5">Foto Produk</label>
@@ -997,14 +1300,19 @@ export default function AdminDashboardPage() {
                       <ImageIcon className="w-6 h-6 text-brand-sage" />
                     )}
                   </div>
-                  <label className="cursor-pointer inline-flex items-center justify-center gap-1.5 px-4.5 py-2.5 rounded-full border border-brand-emerald text-brand-emerald hover:bg-brand-cream text-xs font-bold transition-all">
-                    <Upload className="w-3.5 h-3.5" />
-                    <span>Upload Foto</span>
+                  <label className={`cursor-pointer inline-flex items-center justify-center gap-1.5 px-4.5 py-2.5 rounded-full border border-brand-emerald text-brand-emerald hover:bg-brand-cream text-xs font-bold transition-all ${uploadingImage ? 'opacity-50 pointer-events-none' : ''}`}>
+                    {uploadingImage ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Upload className="w-3.5 h-3.5" />
+                    )}
+                    <span>{uploadingImage ? 'Mengunggah...' : 'Upload Foto'}</span>
                     <input
                       type="file"
                       accept="image/*"
                       onChange={handleImageUpload}
                       className="hidden"
+                      disabled={uploadingImage}
                     />
                   </label>
                   {productForm.image && (
@@ -1036,21 +1344,21 @@ export default function AdminDashboardPage() {
               <div className="flex flex-col">
                 <label className="text-sm font-semibold text-[#1e3329] mb-1">Kategori <span className="text-red-500">*</span></label>
                 <select
-                  value={productForm.category}
-                  onChange={(e) => setProductForm(prev => ({ ...prev, category: e.target.value }))}
+                  value={productForm.category_id}
+                  onChange={(e) => setProductForm(prev => ({ ...prev, category_id: e.target.value }))}
                   className="w-full px-5 py-3 text-sm border border-zinc-200 rounded-full bg-white text-brand-forest focus:outline-none focus:ring-2 focus:ring-brand-emerald cursor-pointer"
                   required
                 >
-                  <option value="Bibit Buah">Bibit Buah</option>
-                  <option value="Tanaman Hias">Tanaman Hias</option>
-                  <option value="Media Tanam">Media Tanam</option>
-                  <option value="Alat Perkebunan">Alat Perkebunan</option>
+                  <option value="">Pilih Kategori</option>
+                  {categories.map(c => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
                 </select>
               </div>
 
               {/* Price & Stock Grid fields */}
               <div className="grid sm:grid-cols-2 gap-4">
-                
+
                 {/* Price */}
                 <div className="flex flex-col">
                   <label className="text-sm font-semibold text-[#1e3329] mb-1">Harga (Rupiah) <span className="text-red-500">*</span></label>
@@ -1154,13 +1462,13 @@ export default function AdminDashboardPage() {
       {isActivityModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-md bg-black/40 animate-fade-in-up">
           <div className="bg-white/95 rounded-[36px] border border-white/20 shadow-2xl w-full max-w-xl overflow-hidden animate-fade-in-up relative">
-            
+
             {/* Modal Title header */}
             <div className="bg-brand-cream border-b border-[#e2ede7] px-8 py-5 flex items-center justify-between">
               <h3 className="font-heading font-extrabold text-lg text-[#1e3329]">
                 {editingActivity ? 'Edit Artikel Kegiatan' : 'Tambah Kegiatan Baru'}
               </h3>
-              <button 
+              <button
                 onClick={() => setIsActivityModalOpen(false)}
                 className="p-1.5 rounded-full hover:bg-brand-lime/20 text-brand-sage hover:text-brand-forest transition-colors cursor-pointer"
                 aria-label="Tutup"
@@ -1171,7 +1479,7 @@ export default function AdminDashboardPage() {
 
             {/* Modal Body Form fields */}
             <form onSubmit={handleActivitySubmit} className="p-8 space-y-4 text-left">
-              
+
               {/* Activity title */}
               <div className="flex flex-col">
                 <label className="text-sm font-semibold text-[#1e3329] mb-1">Judul Kegiatan <span className="text-red-500">*</span></label>
@@ -1187,7 +1495,7 @@ export default function AdminDashboardPage() {
 
               {/* Author & Date Grid fields */}
               <div className="grid sm:grid-cols-2 gap-4">
-                
+
                 {/* Author */}
                 <div className="flex flex-col">
                   <label className="text-sm font-semibold text-[#1e3329] mb-1">Penulis/Author <span className="text-red-500">*</span></label>
@@ -1236,11 +1544,23 @@ export default function AdminDashboardPage() {
                 <label className="text-sm font-semibold text-[#1e3329] mb-1">Ringkasan Narasi <span className="text-red-500">*</span></label>
                 <textarea
                   placeholder="Masukkan ringkasan singkat kegiatan untuk deskripsi kartu..."
-                  rows={3}
+                  rows={2}
                   value={activityForm.summary}
                   onChange={(e) => setActivityForm(prev => ({ ...prev, summary: e.target.value }))}
                   className="w-full px-5 py-3 text-sm border border-zinc-200 rounded-3xl bg-white text-brand-forest focus:outline-none focus:ring-2 focus:ring-brand-emerald shadow-inner"
                   required
+                />
+              </div>
+
+              {/* Content Detail text */}
+              <div className="flex flex-col">
+                <label className="text-sm font-semibold text-[#1e3329] mb-1">Detail Narasi</label>
+                <textarea
+                  placeholder="Masukkan isi lengkap kegiatan/berita di sini..."
+                  rows={3}
+                  value={activityForm.content}
+                  onChange={(e) => setActivityForm(prev => ({ ...prev, content: e.target.value }))}
+                  className="w-full px-5 py-3 text-sm border border-zinc-200 rounded-3xl bg-white text-brand-forest focus:outline-none focus:ring-2 focus:ring-brand-emerald shadow-inner"
                 />
               </div>
 
