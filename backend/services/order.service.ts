@@ -152,6 +152,17 @@ export async function adminUpdateOrderStatus(
   orderId: string,
   status: Extract<OrderStatus, 'processing' | 'shipped' | 'completed' | 'canceled'>
 ): Promise<{ success: boolean; error?: string }> {
+  // Fetch current order to check previous status
+  const order = await getOrderById(orderId);
+  if (!order) {
+    return { success: false, error: 'Pesanan tidak ditemukan.' };
+  }
+
+  // If transitioning from pending to an active/fulfilled state, decrement stock and increment sold_count
+  if (order.status === 'pending' && ['processing', 'shipped', 'completed'].includes(status)) {
+    await handleSuccessfulPayment(order);
+  }
+
   const ok = await updateOrderStatusByAdmin(orderId, status);
   if (!ok) {
     return { success: false, error: 'Gagal memperbarui status pesanan.' };

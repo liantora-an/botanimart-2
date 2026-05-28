@@ -21,7 +21,8 @@ import {
   ArrowRight,
   User,
   ShoppingBag as CartIcon,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Loader2
 } from 'lucide-react';
 import Link from 'next/link';
 import NextImage from 'next/image';
@@ -162,7 +163,7 @@ function TokoKatalogPageContent() {
   // Search & Filtering States
   const [searchQuery, setSearchQuery] = useState('');
   const searchParamVal = searchParams.get('search') || '';
-  
+
   const [activeTab, setActiveTab] = useState<'Semua' | 'Terbaru' | 'Best Seller'>('Semua');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [priceSort, setPriceSort] = useState('');
@@ -170,9 +171,18 @@ function TokoKatalogPageContent() {
 
   // Detail View States
   const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
-  const [quantity, setQuantity] = useState(3); // Default count matching detail mockup
+  const [quantity, setQuantity] = useState(1); // Default count matching detail mockup
   const [activeDetailTab, setActiveDetailTab] = useState<'deskripsi' | 'review'>('deskripsi');
   const [selectedThumbnail, setSelectedThumbnail] = useState(0);
+
+  // Review & Rating States
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [isEligibleToReview, setIsEligibleToReview] = useState(false);
+  const [eligibleOrderId, setEligibleOrderId] = useState<string | null>(null);
+  const [fetchingReviews, setFetchingReviews] = useState(false);
+  const [submittingReview, setSubmittingReview] = useState(false);
+  const [newRating, setNewRating] = useState(5);
+  const [newComment, setNewComment] = useState('');
 
   // Pagination Active Index
   const [currentPage, setCurrentPage] = useState(1);
@@ -208,14 +218,14 @@ function TokoKatalogPageContent() {
       const params = new URLSearchParams();
       params.set('page', String(currentPage));
       params.set('limit', '8'); // 8 items displayed per design mockup
-      
+
       if (searchQuery) {
         params.set('search', searchQuery);
       }
       if (categoryFilter) {
         params.set('category', categoryFilter);
       }
-      
+
       // Price Sorting mapping
       if (priceSort === 'cheap') {
         params.set('sort', 'price_asc');
@@ -239,10 +249,10 @@ function TokoKatalogPageContent() {
         const data = await res.json();
         if (data.success && data.data) {
           let items = data.data.data || [];
-          
+
           // Apply client-side delivery method filter (since pickup_methods is an array)
           if (methodFilter) {
-            items = items.filter((p: any) => 
+            items = items.filter((p: any) =>
               p.pickup_methods?.some((m: string) => m.toLowerCase().includes(methodFilter.toLowerCase()))
             );
           }
@@ -254,8 +264,9 @@ function TokoKatalogPageContent() {
             category: p.category?.name || 'Tanaman',
             price: p.price,
             unit: p.unit || 'buah',
-            rating: p.rating_avg ? Number(p.rating_avg) : 4.9,
-            reviews: p.rating_count || 12,
+            rating: p.rating_avg ? Number(p.rating_avg) : 0,
+            reviews: p.rating_count || 0,
+            sold_count: p.sold_count || 0,
             stock: p.stock,
             tags: p.tags || [],
             description: p.description || 'Tanaman berkualitas unggulan hasil perawatan organik khusus.',
@@ -315,12 +326,108 @@ function TokoKatalogPageContent() {
   // Alias filteredProducts to our dynamically fetched and mapped products state
   const filteredProducts = products;
 
+  // Fetch dynamic reviews and user review eligibility
+  const fetchReviews = useCallback(async (productId: string) => {
+    setFetchingReviews(true);
+    try {
+      const res = await fetch(`/api/catalog/${productId}/reviews`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success) {
+          setReviews(data.data.reviews);
+          setIsEligibleToReview(data.data.isEligible);
+          setEligibleOrderId(data.data.eligibleOrderId || null);
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching reviews:', err);
+    } finally {
+      setFetchingReviews(false);
+    }
+  }, []);
+
+  // Submit review handler
+  const handleReviewSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedProduct) return;
+    if (newRating < 1 || newRating > 5) {
+      alert('Rating harus antara 1 dan 5.');
+      return;
+    }
+
+    setSubmittingReview(true);
+    try {
+      const res = await fetch(`/api/catalog/${selectedProduct.id}/reviews`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rating: newRating, comment: newComment }),
+      });
+      const data = await res.json();
+      if (res.status === 401) {
+        router.push(`/login?from=/toko`);
+        return;
+      }
+      if (data.success) {
+        alert('Ulasan Anda berhasil dikirim! Terima kasih.');
+        setNewComment('');
+        setNewRating(5);
+        
+        // Fetch updated reviews & eligibility instantly
+        await fetchReviews(selectedProduct.id);
+
+        // Update the average rating & count in the selected product details dynamically
+        const allReviews = [...reviews, data.data];
+        const newCount = allReviews.length;
+        const newAvg = Number((allReviews.reduce((sum, r) => sum + r.rating, 0) / newCount).toFixed(2));
+
+        setSelectedProduct((prev: any) => {
+          if (!prev) return null;
+          return {
+            ...prev,
+            rating: newAvg,
+            reviews: newCount
+          };
+        });
+
+        // Update in the products list as well
+        setProducts((prevProds) =>
+          prevProds.map((p) => {
+            if (p.id === selectedProduct.id) {
+              return {
+                ...p,
+                rating: newAvg,
+                reviews: newCount
+              };
+            }
+            return p;
+          })
+        );
+      } else {
+        alert(data.error || 'Gagal mengirimkan ulasan.');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Terjadi kesalahan jaringan.');
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
+
+  // Fetch reviews automatically when product selected
+  React.useEffect(() => {
+    if (selectedProduct) {
+      fetchReviews(selectedProduct.id);
+    }
+  }, [selectedProduct, fetchReviews]);
+
   // Handle open product detail
   const openProductDetail = (product: any) => {
     setSelectedProduct(product);
-    setQuantity(3); // Reset quantity counter to 3 as in mockup
+    setQuantity(1); // Reset quantity counter to 1 as in mockup
     setActiveDetailTab('deskripsi');
     setSelectedThumbnail(0);
+    setNewRating(5);
+    setNewComment('');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -519,8 +626,13 @@ function TokoKatalogPageContent() {
                       </div>
 
                       <div className="flex items-center gap-1 text-xs text-brand-sage font-semibold">
-                        <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
-                        <span>{product.rating} ({product.reviews})</span>
+                        <Star className={`w-4 h-4 ${product.reviews > 0 ? 'fill-amber-400 text-amber-400' : 'text-zinc-300'}`} />
+                        <span>
+                          {product.reviews > 0 
+                            ? `${product.rating} (${product.reviews})`
+                            : 'Belum ada ulasan'
+                          }
+                        </span>
                       </div>
 
                       {/* Actions Double Button */}
@@ -722,17 +834,22 @@ function TokoKatalogPageContent() {
                   {/* Rating, Reviews & Popularity */}
                   <div className="flex items-center gap-3 text-sm text-brand-sage font-semibold pt-1">
                     <div className="flex items-center gap-1">
-                      <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
-                      <span>{selectedProduct.rating} ({selectedProduct.reviews})</span>
+                      <Star className={`w-4 h-4 ${selectedProduct.reviews > 0 ? 'fill-amber-400 text-amber-400' : 'text-zinc-300'}`} />
+                      <span>
+                        {selectedProduct.reviews > 0 
+                          ? `${selectedProduct.rating} (${selectedProduct.reviews} Ulasan)`
+                          : 'Belum ada ulasan'
+                        }
+                      </span>
                     </div>
                     <span>•</span>
-                    <span className="text-brand-emerald font-bold">10 Terjual</span>
+                    <span className="text-brand-emerald font-bold">{selectedProduct.sold_count || 0} Terjual</span>
                   </div>
                 </div>
 
                 {/* Price Label */}
                 <div className="text-3xl font-heading font-black text-brand-emerald border-y border-[#e2ede7] py-4">
-                  Rp. {selectedProduct.price.toLocaleString('id-ID')}/5 pack
+                  Rp. {selectedProduct.price.toLocaleString('id-ID')}
                 </div>
 
                 {/* Pengambilan Info */}
@@ -873,26 +990,118 @@ function TokoKatalogPageContent() {
                     </ul>
                   </div>
                 ) : (
-                  <div className="space-y-6 max-w-3xl">
-                    <div className="flex items-start gap-4 p-5 rounded-2xl bg-white border border-[#e2ede7] shadow-sm">
-                      <div className="w-10 h-10 rounded-full bg-brand-cream flex items-center justify-center shrink-0">
-                        <User className="w-5 h-5 text-brand-emerald" />
-                      </div>
-                      <div className="space-y-2 text-left">
+                  <div className="space-y-8 max-w-3xl text-left">
+                    
+                    {/* Submit Review Form (Render only if user is eligible to write a review) */}
+                    {isEligibleToReview && (
+                      <form onSubmit={handleReviewSubmit} className="p-6 rounded-3xl bg-brand-cream/40 border border-brand-emerald/10 space-y-4 animate-fade-in-up">
+                        <div className="space-y-1">
+                          <h3 className="font-heading font-black text-brand-forest text-lg">Tulis Ulasan Produk</h3>
+                          <p className="text-brand-sage text-xs">Bagikan pengalaman Anda tentang produk tanaman ini kepada pembeli lain.</p>
+                        </div>
+
+                        {/* Star Rating selector */}
                         <div className="flex items-center gap-2">
-                          <h4 className="font-bold text-[#1e3329] text-sm">Budi Hartono</h4>
-                          <span className="text-[10px] text-zinc-300 font-normal">|</span>
-                          <span className="text-[10px] text-brand-sage font-medium">Terverifikasi</span>
+                          <span className="text-xs font-semibold text-brand-sage uppercase tracking-wider">Rating:</span>
+                          <div className="flex gap-1">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <button
+                                key={star}
+                                type="button"
+                                onClick={() => setNewRating(star)}
+                                className="p-1 hover:scale-110 transition-transform cursor-pointer"
+                                aria-label={`${star} Bintang`}
+                              >
+                                <Star
+                                  className={`w-6 h-6 transition-colors ${
+                                    star <= newRating
+                                      ? 'fill-amber-400 text-amber-400'
+                                      : 'text-zinc-300'
+                                  }`}
+                                />
+                              </button>
+                            ))}
+                          </div>
                         </div>
-                        <div className="flex gap-0.5">
-                          {[...Array(5)].map((_, i) => (
-                            <Star key={i} className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                          ))}
+
+                        {/* Comment text area */}
+                        <div className="flex flex-col">
+                          <label htmlFor="review-comment" className="text-xs font-semibold text-brand-sage uppercase tracking-wider mb-1.5">Ulasan Anda</label>
+                          <textarea
+                            id="review-comment"
+                            rows={3}
+                            placeholder="Tulis ulasan Anda secara detail di sini..."
+                            value={newComment}
+                            onChange={(e) => setNewComment(e.target.value)}
+                            className="w-full px-5 py-3 text-sm border border-zinc-200 rounded-2xl bg-white text-brand-forest focus:outline-none focus:ring-2 focus:ring-brand-emerald"
+                            required
+                          />
                         </div>
-                        <p className="text-brand-sage text-xs leading-relaxed font-medium">
-                          "Bibit sampai dengan kondisi sangat segar, pekingan kayu luar biasa aman. Sangat direkomendasikan beli bibit buah disini!"
-                        </p>
-                      </div>
+
+                        <button
+                          type="submit"
+                          disabled={submittingReview}
+                          className="px-6 py-2.5 rounded-full bg-brand-emerald hover:bg-brand-forest text-white text-xs font-extrabold uppercase tracking-wider shadow-sm transition-all cursor-pointer inline-flex items-center justify-center gap-2"
+                        >
+                          {submittingReview ? (
+                            <>
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              <span>Mengirim...</span>
+                            </>
+                          ) : (
+                            <span>Kirim Ulasan</span>
+                          )}
+                        </button>
+                      </form>
+                    )}
+
+                    {/* Reviews List */}
+                    <div className="space-y-4">
+                      {fetchingReviews ? (
+                        <div className="flex justify-center py-6">
+                          <Loader2 className="w-6 h-6 animate-spin text-brand-emerald" />
+                        </div>
+                      ) : reviews.length === 0 ? (
+                        <div className="text-center py-10 border border-dashed border-[#e2ede7] rounded-3xl bg-white">
+                          <p className="text-brand-sage text-sm font-medium">Belum ada ulasan untuk produk ini.</p>
+                          {!isEligibleToReview && (
+                            <p className="text-brand-sage/60 text-xs mt-1">Beli produk ini untuk menjadi yang pertama memberikan ulasan!</p>
+                          )}
+                        </div>
+                      ) : (
+                        reviews.map((r: any) => (
+                          <div key={r.id} className="flex items-start gap-4 p-5 rounded-2xl bg-white border border-[#e2ede7] shadow-sm animate-fade-in-up">
+                            <div className="w-10 h-10 rounded-full bg-brand-cream flex items-center justify-center shrink-0 border border-brand-emerald/10">
+                              <User className="w-5 h-5 text-brand-emerald" />
+                            </div>
+                            <div className="space-y-2 text-left flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <h4 className="font-bold text-[#1e3329] text-sm truncate max-w-xs">{r.user?.full_name || 'Pembeli Anonim'}</h4>
+                                <span className="text-[10px] text-zinc-300 font-normal">|</span>
+                                <span className="text-[10px] text-brand-emerald font-bold uppercase tracking-wider font-sans">Terverifikasi</span>
+                                <span className="text-[10px] text-zinc-300 font-normal ml-auto font-sans">{new Date(r.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                              </div>
+                              <div className="flex gap-0.5">
+                                {[...Array(5)].map((_, i) => (
+                                  <Star
+                                    key={i}
+                                    className={`w-3.5 h-3.5 ${
+                                      i < r.rating
+                                        ? 'fill-amber-400 text-amber-400'
+                                        : 'text-zinc-200'
+                                    }`}
+                                  />
+                                ))}
+                              </div>
+                              {r.comment && (
+                                <p className="text-brand-sage text-xs leading-relaxed font-medium mt-1">
+                                  "{r.comment}"
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        ))
+                      )}
                     </div>
                   </div>
                 )}
@@ -975,8 +1184,13 @@ function TokoKatalogPageContent() {
                       </div>
 
                       <div className="flex items-center gap-1 text-xs text-brand-sage font-semibold">
-                        <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                        <span>{recommendation.rating} ({recommendation.reviews})</span>
+                        <Star className={`w-3.5 h-3.5 ${recommendation.reviews > 0 ? 'fill-amber-400 text-amber-400' : 'text-zinc-300'}`} />
+                        <span>
+                          {recommendation.reviews > 0 
+                            ? `${recommendation.rating} (${recommendation.reviews})`
+                            : 'Belum ada ulasan'
+                          }
+                        </span>
                       </div>
 
                       {/* Actions Double Button */}

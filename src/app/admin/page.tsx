@@ -635,8 +635,8 @@ export default function AdminDashboardPage() {
             <button
               onClick={() => setActiveMenu('dashboard')}
               className={`w-full flex items-center gap-3.5 px-4.5 py-3.5 rounded-2xl text-sm font-heading font-extrabold tracking-wide uppercase transition-all duration-300 shrink-0 cursor-pointer ${activeMenu === 'dashboard'
-                  ? 'bg-[#345947] text-brand-lime shadow-inner'
-                  : 'text-white/70 hover:text-white hover:bg-white/5'
+                ? 'bg-[#345947] text-brand-lime shadow-inner'
+                : 'text-white/70 hover:text-white hover:bg-white/5'
                 }`}
             >
               <LayoutDashboard className="w-5 h-5 shrink-0" />
@@ -647,8 +647,8 @@ export default function AdminDashboardPage() {
             <button
               onClick={() => setActiveMenu('produk')}
               className={`w-full flex items-center gap-3.5 px-4.5 py-3.5 rounded-2xl text-sm font-heading font-extrabold tracking-wide uppercase transition-all duration-300 shrink-0 cursor-pointer ${activeMenu === 'produk'
-                  ? 'bg-[#345947] text-brand-lime shadow-inner'
-                  : 'text-white/70 hover:text-white hover:bg-white/5'
+                ? 'bg-[#345947] text-brand-lime shadow-inner'
+                : 'text-white/70 hover:text-white hover:bg-white/5'
                 }`}
             >
               <Sprout className="w-5 h-5 shrink-0" />
@@ -659,8 +659,8 @@ export default function AdminDashboardPage() {
             <button
               onClick={() => setActiveMenu('kegiatan')}
               className={`w-full flex items-center gap-3.5 px-4.5 py-3.5 rounded-2xl text-sm font-heading font-extrabold tracking-wide uppercase transition-all duration-300 shrink-0 cursor-pointer ${activeMenu === 'kegiatan'
-                  ? 'bg-[#345947] text-brand-lime shadow-inner'
-                  : 'text-white/70 hover:text-white hover:bg-white/5'
+                ? 'bg-[#345947] text-brand-lime shadow-inner'
+                : 'text-white/70 hover:text-white hover:bg-white/5'
                 }`}
             >
               <CalendarIcon className="w-5 h-5 shrink-0" />
@@ -932,13 +932,12 @@ export default function AdminDashboardPage() {
                               <select
                                 value={order.status}
                                 onChange={(e) => handleUpdateOrderStatus(order.id, e.target.value)}
-                                className={`text-[10px] font-bold border rounded-full px-2.5 py-1 focus:outline-none cursor-pointer ${
-                                  order.status === 'completed'
+                                className={`text-[10px] font-bold border rounded-full px-2.5 py-1 focus:outline-none cursor-pointer ${order.status === 'completed'
                                     ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                                     : order.status === 'canceled' || order.status === 'expired'
-                                    ? 'bg-rose-50 text-rose-700 border-rose-200'
-                                    : 'bg-amber-50 text-amber-700 border-amber-200'
-                                }`}
+                                      ? 'bg-rose-50 text-rose-700 border-rose-200'
+                                      : 'bg-amber-50 text-amber-700 border-amber-200'
+                                  }`}
                               >
                                 <option value="pending">Pending</option>
                                 <option value="paid">Paid</option>
@@ -1100,8 +1099,8 @@ export default function AdminDashboardPage() {
                           <td className="py-4.5">
                             <div className="flex flex-col gap-1 text-left">
                               <span className={`inline-flex items-center justify-center w-24 py-1 rounded-full text-[9px] font-bold tracking-wide uppercase border ${product.stock > 0
-                                  ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
-                                  : 'bg-rose-50 text-rose-700 border-rose-100'
+                                ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
+                                : 'bg-rose-50 text-rose-700 border-rose-100'
                                 }`}>
                                 {product.stock > 0 ? 'In Stock' : 'Out of Stock'}
                               </span>
