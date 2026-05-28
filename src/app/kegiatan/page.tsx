@@ -123,12 +123,12 @@ Melalui program kunjungan ramah anak ini, Botani Mart berusaha aktif berkontribu
 
 export default function KegiatanPage() {
   // Global states
-  const [wishlist, setWishlist] = useState<Record<number, boolean>>({});
+  const [wishlist, setWishlist] = useState<Record<string | number, boolean>>({});
 
   // Local dynamically editable Activities list (Stateful CRUD!)
-  const [activitiesList, setActivitiesList] = useState(
-    ACTIVITIES.map(a => ({ ...a, image: '' }))
-  );
+  const [activitiesList, setActivitiesList] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isRealAdmin, setIsRealAdmin] = useState(false);
 
   // Admin Mode & Inline Editor states
   const [isAdminMode, setIsAdminMode] = useState(false);
@@ -145,7 +145,7 @@ export default function KegiatanPage() {
   });
 
   // Interactive View States
-  const [selectedActivity, setSelectedActivity] = useState<typeof activitiesList[0] | null>(null);
+  const [selectedActivity, setSelectedActivity] = useState<any | null>(null);
 
   // Search & Tab Filters States
   const [searchQuery, setSearchQuery] = useState('');
@@ -153,9 +153,65 @@ export default function KegiatanPage() {
   const [currentPage, setCurrentPage] = useState(1);
 
   // Bookmark toggle
-  const toggleBookmark = (id: number) => {
+  const toggleBookmark = (id: string | number) => {
     setWishlist(prev => ({ ...prev, [id]: !prev[id] }));
   };
+
+  // Fetch activities from database
+  const fetchActivities = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch('/api/activities?admin=true');
+      const data = await res.json();
+      if (data.success && data.data && data.data.data && data.data.data.length > 0) {
+        const mapped = data.data.data.map((a: any, idx: number) => {
+          const tags = ['Semua'];
+          if (idx < 3) tags.push('Terbaru');
+          if (idx % 2 === 0) tags.push('Terpopuler');
+          return {
+            id: a.id,
+            title: a.title,
+            summary: a.summary,
+            content: a.content || '',
+            date: new Date(a.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'numeric', year: 'numeric' }),
+            author: a.author,
+            category: a.category,
+            image: a.image_url || '',
+            tags: tags
+          };
+        });
+        setActivitiesList(mapped);
+      } else {
+        // Fallback to mock activities if DB is empty
+        setActivitiesList(ACTIVITIES.map(a => ({ ...a, image: '' })));
+      }
+    } catch (err) {
+      console.error('Error fetching activities:', err);
+      setActivitiesList(ACTIVITIES.map(a => ({ ...a, image: '' })));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Check auth on mount
+  useEffect(() => {
+    const checkAuthAndFetch = async () => {
+      try {
+        const authRes = await fetch(`/api/auth/me?t=${Date.now()}`);
+        if (authRes.ok) {
+          const authData = await authRes.json();
+          if (authData.success && authData.data.role === 'Admin') {
+            setIsRealAdmin(true);
+            setIsAdminMode(true);
+          }
+        }
+      } catch (err) {
+        console.error('Auth verification error:', err);
+      }
+      await fetchActivities();
+    };
+    checkAuthAndFetch();
+  }, []);
 
   // Filtered Activities computation
   const filteredActivities = useMemo(() => {
@@ -171,22 +227,22 @@ export default function KegiatanPage() {
       if (activeTab === 'Terpopuler' && !activity.tags.includes('Terpopuler')) {
         return false;
       }
-      if (activeTab === 'Disimpan' && !activity.tags.includes('Disimpan')) {
+      if (activeTab === 'Disimpan' && !wishlist[activity.id]) {
         return false;
       }
       return true;
     });
-  }, [activitiesList, searchQuery, activeTab]);
+  }, [activitiesList, searchQuery, activeTab, wishlist]);
 
   // Open detailed article view
-  const openActivityDetail = (activity: typeof activitiesList[0]) => {
+  const openActivityDetail = (activity: any) => {
     setSelectedActivity(activity);
     setIsEditing(false); // Default to view mode on entry
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // Trigger editing form activation
-  const startEditing = (activity: typeof activitiesList[0]) => {
+  const startEditing = (activity: any) => {
     setEditForm({
       title: activity.title,
       category: activity.category,
@@ -200,52 +256,94 @@ export default function KegiatanPage() {
     setIsEditing(true);
   };
 
-  // Handle image upload for article banner
-  const handleArticleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Handle image upload for article banner dynamically using robust upload API
+  const handleArticleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setEditForm(prev => ({ ...prev, image: reader.result as string }));
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const res = await fetch('/api/upload/plant-image', {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setEditForm(prev => ({ ...prev, image: data.data.publicUrl }));
+        alert('Gambar artikel berhasil diunggah!');
+      } else {
+        alert(data.error || 'Gagal mengunggah gambar.');
+      }
+    } catch (err) {
+      console.error('Image upload error:', err);
+      alert('Terjadi kesalahan saat mengunggah gambar.');
     }
   };
 
-  // Save edited article to state
-  const handleSaveArticle = () => {
+  // Save edited article to database
+  const handleSaveArticle = async () => {
     if (!editForm.title || !editForm.author || !editForm.content) {
       alert('Judul, Penulis, dan Isi Artikel wajib diisi!');
       return;
     }
-    setActivitiesList(prev => prev.map(a => a.id === selectedActivity!.id ? {
-      ...a,
-      title: editForm.title,
-      category: editForm.category,
-      author: editForm.author,
-      date: editForm.date,
-      readingTime: editForm.readingTime,
-      summary: editForm.summary,
-      content: editForm.content,
-      image: editForm.image
-    } : a));
 
-    // Instantly update active view container
-    setSelectedActivity({
-      id: selectedActivity!.id,
-      title: editForm.title,
-      category: editForm.category,
-      author: editForm.author,
-      date: editForm.date,
-      readingTime: editForm.readingTime,
-      summary: editForm.summary,
-      content: editForm.content,
-      image: editForm.image,
-      tags: selectedActivity!.tags
-    });
+    try {
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(selectedActivity!.id));
+      const payload = {
+        title: editForm.title,
+        category: editForm.category,
+        author: editForm.author,
+        summary: editForm.summary || editForm.content.slice(0, 150) + '...',
+        content: editForm.content,
+        image_url: editForm.image || null,
+        published: true
+      };
 
-    setIsEditing(false);
-    alert('Artikel berhasil diperbarui!');
+      let response;
+      if (isUUID) {
+        // PUT request to update DB activity
+        response = await fetch(`/api/activities/${selectedActivity!.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+      } else {
+        // POST request to create fallback mock activity in DB
+        response = await fetch('/api/activities', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+      }
+
+      const resData = await response.json();
+      if (response.ok && resData.success) {
+        const saved = resData.data;
+        const updatedActivity = {
+          id: saved.id,
+          title: saved.title,
+          category: saved.category,
+          author: saved.author,
+          date: new Date(saved.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'numeric', year: 'numeric' }),
+          summary: saved.summary,
+          content: saved.content || '',
+          image: saved.image_url || '',
+          tags: selectedActivity!.tags || ['Semua']
+        };
+
+        setActivitiesList(prev => prev.map(a => a.id === selectedActivity!.id ? updatedActivity : a));
+        setSelectedActivity(updatedActivity);
+        setIsEditing(false);
+        alert('Artikel berhasil disimpan ke database!');
+      } else {
+        alert(resData.error || 'Gagal menyimpan artikel.');
+      }
+    } catch (err) {
+      console.error('Error saving article:', err);
+      alert('Terjadi kesalahan saat menghubungi server.');
+    }
   };
 
   // Load and open edit mode dynamically if routed from Admin Dashboard with query parameters
@@ -253,9 +351,8 @@ export default function KegiatanPage() {
     const params = new URLSearchParams(window.location.search);
     const idParam = params.get('id');
     const editParam = params.get('edit');
-    if (idParam) {
-      const activityId = Number(idParam);
-      const targetActivity = activitiesList.find(a => a.id === activityId);
+    if (idParam && activitiesList.length > 0) {
+      const targetActivity = activitiesList.find(a => String(a.id) === String(idParam));
       if (targetActivity) {
         setSelectedActivity(targetActivity);
         if (editParam === 'true') {
@@ -286,41 +383,47 @@ export default function KegiatanPage() {
       <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in-up">
 
         {/* Floating Admin Mode Control Panel */}
-        <div className="mb-8 flex flex-col sm:flex-row gap-4 items-center justify-between bg-amber-50/60 border border-amber-200/50 rounded-3xl p-5 shadow-sm select-none">
-          <div className="flex items-center gap-3.5">
-            <span className="relative flex h-3.5 w-3.5">
-              <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isAdminMode ? 'bg-amber-400' : 'bg-brand-emerald/40'}`}></span>
-              <span className={`relative inline-flex rounded-full h-3.5 w-3.5 ${isAdminMode ? 'bg-amber-500' : 'bg-brand-emerald'}`}></span>
-            </span>
-            <div className="text-left space-y-0.5">
-              <h4 className="text-xs font-heading font-black text-brand-forest uppercase tracking-wider">
-                {isAdminMode ? 'Mode Admin (Aktif)' : 'Mode Pengunjung'}
-              </h4>
-              <p className="text-[11px] text-brand-sage font-semibold leading-relaxed">
-                {isAdminMode ? 'Anda dapat menyunting artikel secara visual di laman ini.' : 'Aktifkan mode admin untuk mengedit artikel langsung.'}
-              </p>
+        {isRealAdmin && (
+          <div className="mb-8 flex flex-col sm:flex-row gap-4 items-center justify-between bg-amber-50/60 border border-amber-200/50 rounded-3xl p-5 shadow-sm select-none">
+            <div className="flex items-center gap-3.5">
+              <span className="relative flex h-3.5 w-3.5">
+                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isAdminMode ? 'bg-amber-400' : 'bg-brand-emerald/40'}`}></span>
+                <span className={`relative inline-flex rounded-full h-3.5 w-3.5 ${isAdminMode ? 'bg-amber-500' : 'bg-brand-emerald'}`}></span>
+              </span>
+              <div className="text-left space-y-0.5">
+                <h4 className="text-xs font-heading font-black text-brand-forest uppercase tracking-wider">
+                  {isAdminMode ? 'Mode Admin (Aktif)' : 'Mode Pengunjung'}
+                </h4>
+                <p className="text-[11px] text-brand-sage font-semibold leading-relaxed">
+                  {isAdminMode ? 'Anda dapat menyunting artikel secara visual di laman ini.' : 'Aktifkan mode admin untuk mengedit artikel langsung.'}
+                </p>
+              </div>
             </div>
+            <button
+              onClick={() => {
+                setIsAdminMode(!isAdminMode);
+                if (isAdminMode) {
+                  setIsEditing(false); // Cancel active editing if toggled off
+                }
+              }}
+              className={`inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full text-xs font-bold shadow-md cursor-pointer transition-all duration-300 ${
+                isAdminMode
+                  ? 'bg-amber-500 hover:bg-amber-600 text-white'
+                  : 'bg-brand-emerald/10 text-brand-emerald hover:bg-brand-emerald/20 border border-brand-emerald/20'
+              }`}
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>{isAdminMode ? 'Kembali ke Pengunjung' : 'Aktifkan Mode Admin'}</span>
+            </button>
           </div>
-          <button
-            onClick={() => {
-              setIsAdminMode(!isAdminMode);
-              if (isAdminMode) {
-                setIsEditing(false); // Cancel active editing if toggled off
-              }
-            }}
-            className={`inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full text-xs font-bold shadow-md cursor-pointer transition-all duration-300 ${
-              isAdminMode
-                ? 'bg-amber-500 hover:bg-amber-600 text-white'
-                : 'bg-brand-emerald/10 text-brand-emerald hover:bg-brand-emerald/20 border border-brand-emerald/20'
-            }`}
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>{isAdminMode ? 'Kembali ke Pengunjung' : 'Aktifkan Mode Admin'}</span>
-          </button>
-        </div>
+        )}
 
-        {/* CONDITION 1: ACTIVITIES LIST VIEW (Daftar Kegiatan) */}
-        {!selectedActivity ? (
+        {loading ? (
+          <div className="py-20 flex flex-col items-center justify-center gap-4">
+            <div className="w-12 h-12 rounded-full border-4 border-brand-emerald border-t-transparent animate-spin" />
+            <p className="text-sm font-bold text-brand-sage">Memuat data artikel...</p>
+          </div>
+        ) : !selectedActivity ? (
           <div className="space-y-8">
 
             {/* Header Banner (Blank/Empty Background, soft green as Placeholder per instruction) */}
