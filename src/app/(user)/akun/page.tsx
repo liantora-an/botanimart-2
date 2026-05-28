@@ -8,6 +8,8 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import NextImage from 'next/image';
+import Navbar from '@/components/layout/Navbar';
+import Footer from '@/components/layout/Footer';
 import { useRouter } from 'next/navigation';
 
 interface UserProfile {
@@ -125,15 +127,7 @@ export default function AkunPage() {
   if (loading) {
     return (
       <div className="flex flex-col min-h-screen bg-[#fcfdfc] font-sans text-brand-forest">
-        <header className="sticky top-0 z-50 w-full backdrop-blur-md bg-white/80 border-b border-[#e2ede7]">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center">
-            <Link href="/" className="flex items-center">
-              <div className="relative w-64 h-16">
-                <NextImage src="/images/logo_v4.png" alt="Botani Mart" fill className="object-contain" />
-              </div>
-            </Link>
-          </div>
-        </header>
+        <Navbar />
         <div className="flex-1 flex items-center justify-center">
           <Loader2 className="w-8 h-8 animate-spin text-brand-emerald" />
         </div>
@@ -145,33 +139,7 @@ export default function AkunPage() {
     <div className="flex flex-col min-h-screen bg-[#fcfdfc] font-sans antialiased text-brand-forest">
 
       {/* Header */}
-      <header className="sticky top-0 z-50 w-full backdrop-blur-md bg-white/80 border-b border-[#e2ede7]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-          <Link href="/" className="flex items-center group">
-            <div className="relative w-64 h-16 transition-all group-hover:scale-102">
-              <NextImage src="/images/logo_v4.png" alt="Botani Mart" fill priority className="object-contain" />
-            </div>
-          </Link>
-          <nav className="hidden md:flex items-center gap-8">
-            <Link href="/" className="text-sm font-semibold text-brand-sage hover:text-brand-forest transition-colors">Beranda</Link>
-            <Link href="/toko" className="text-sm font-semibold text-brand-sage hover:text-brand-forest transition-colors">Toko</Link>
-            <Link href="/kegiatan" className="text-sm font-semibold text-brand-sage hover:text-brand-forest transition-colors">Kegiatan</Link>
-          </nav>
-          <div className="flex items-center gap-3">
-            <Link href="/keranjang" className="p-2.5 rounded-full hover:bg-brand-cream text-brand-sage hover:text-brand-forest transition-all">
-              <ShoppingBag className="w-5 h-5" />
-            </Link>
-            <button
-              onClick={handleLogout}
-              disabled={loggingOut}
-              className="hidden sm:inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full border border-red-200 text-red-600 hover:bg-red-50 text-xs font-bold transition-all"
-            >
-              {loggingOut ? <Loader2 className="w-4 h-4 animate-spin" /> : <LogOut className="w-4 h-4" />}
-              Keluar
-            </button>
-          </div>
-        </div>
-      </header>
+      <Navbar />
 
       <main className="flex-1 w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in-up">
 
@@ -372,11 +340,7 @@ export default function AkunPage() {
         )}
       </main>
 
-      <footer className="bg-brand-forest text-white/80 py-8 mt-auto">
-        <div className="max-w-7xl mx-auto px-4 text-center text-sm">
-          <p>&copy; 2025 Botani Mart. Semua hak dilindungi.</p>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

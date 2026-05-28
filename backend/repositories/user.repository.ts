@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 import type { User } from '@/backend/types';
 
 /**
@@ -11,7 +11,7 @@ import type { User } from '@/backend/types';
  * Fetches a user profile by their auth UUID.
  */
 export async function getUserById(id: string): Promise<User | null> {
-  const supabase = await createClient();
+  const supabase = await createAdminClient();
   const { data, error } = await supabase
     .from('users')
     .select('*')
@@ -33,7 +33,7 @@ export async function createUserProfile(params: {
   phone?: string;
   role?: 'User' | 'Admin';
 }): Promise<User | null> {
-  const supabase = await createClient();
+  const supabase = await createAdminClient();
   const { data, error } = await supabase
     .from('users')
     .insert({
@@ -60,7 +60,7 @@ export async function updateUserProfile(
   id: string,
   updates: Partial<Pick<User, 'full_name' | 'phone' | 'address'>>
 ): Promise<User | null> {
-  const supabase = await createClient();
+  const supabase = await createAdminClient();
   const { data, error } = await supabase
     .from('users')
     .update(updates)
@@ -76,7 +76,7 @@ export async function updateUserProfile(
  * Gets user role by auth UUID (used in middleware).
  */
 export async function getUserRole(id: string): Promise<'User' | 'Admin' | null> {
-  const supabase = await createClient();
+  const supabase = await createAdminClient();
   const { data, error } = await supabase
     .from('users')
     .select('role')
@@ -91,7 +91,7 @@ export async function getUserRole(id: string): Promise<'User' | 'Admin' | null> 
  * Lists all users — Admin only feature.
  */
 export async function listUsers(): Promise<User[]> {
-  const supabase = await createClient();
+  const supabase = await createAdminClient();
   const { data, error } = await supabase
     .from('users')
     .select('*')

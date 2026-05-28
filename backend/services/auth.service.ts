@@ -94,7 +94,17 @@ export async function signIn(params: {
   }
 
   // Fetch full profile for role info
-  const profile = await getUserById(data.user.id);
+  let profile = await getUserById(data.user.id);
+  if (!profile) {
+    // Self-healing: if the user exists in Supabase Auth but their public profile row is missing, recreate it!
+    profile = await createUserProfile({
+      id: data.user.id,
+      email: data.user.email ?? '',
+      full_name: data.user.user_metadata?.full_name || 'Pengguna',
+      phone: data.user.user_metadata?.phone || undefined,
+      role: 'User',
+    });
+  }
 
   return {
     success: true,
@@ -118,9 +128,6 @@ export async function signOut(): Promise<void> {
   await supabase.auth.signOut();
 }
 
-/**
- * Returns the current authenticated user profile.
- */
 export async function getCurrentUser(): Promise<User | null> {
   const supabase = await createClient();
 
@@ -129,5 +136,26 @@ export async function getCurrentUser(): Promise<User | null> {
   } = await supabase.auth.getUser();
 
   if (!authUser) return null;
-  return getUserById(authUser.id);
+
+  let profile = await getUserById(authUser.id);
+  if (!profile) {
+    // Stale session detected: user has auth credentials but no public profile
+    // (e.g. they deleted their account row from public.users)
+    // Self-healing: recreate public profile row if deleted but auth session is active
+    profile = await createUserProfile({
+      id: authUser.id,
+      email: authUser.email ?? '',
+      full_name: authUser.user_metadata?.full_name || 'Pengguna',
+      phone: authUser.user_metadata?.phone || undefined,
+      role: 'User',
+    });
+
+    if (!profile) {
+      // Re-creation failed, sign out to clear browser cookies and prevent redirect loops
+      await supabase.auth.signOut();
+      return null;
+    }
+  }
+
+  return profile;
 }

@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Search,
   ShoppingBag,
@@ -24,7 +25,8 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import NextImage from 'next/image';
-import AuthButton from '@/components/layout/AuthButton';
+import Navbar from '@/components/layout/Navbar';
+import Footer from '@/components/layout/Footer';
 
 // Complete Mock Products Database matching mockup
 const PRODUCTS = [
@@ -142,22 +144,32 @@ const PRODUCTS = [
   }
 ];
 
-export default function TokoKatalogPage() {
-  // Navigation & Cart States
-  const [cartCount, setCartCount] = useState(2);
-  const [wishlist, setWishlist] = useState<Record<number, boolean>>({});
+function TokoKatalogPageContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
 
-  // Interactive View States
-  const [selectedProduct, setSelectedProduct] = useState<typeof PRODUCTS[0] | null>(null);
+  // API Database States
+  const [products, setProducts] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+
+  // Navigation & Cart States
+  const [wishlist, setWishlist] = useState<Record<string | number, boolean>>({});
+  const [addingToCart, setAddingToCart] = useState<string | number | null>(null);
 
   // Search & Filtering States
   const [searchQuery, setSearchQuery] = useState('');
+  const searchParamVal = searchParams.get('search') || '';
+  
   const [activeTab, setActiveTab] = useState<'Semua' | 'Terbaru' | 'Best Seller'>('Semua');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [priceSort, setPriceSort] = useState('');
   const [methodFilter, setMethodFilter] = useState('');
 
   // Detail View States
+  const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
   const [quantity, setQuantity] = useState(3); // Default count matching detail mockup
   const [activeDetailTab, setActiveDetailTab] = useState<'deskripsi' | 'review'>('deskripsi');
   const [selectedThumbnail, setSelectedThumbnail] = useState(0);
@@ -165,49 +177,146 @@ export default function TokoKatalogPage() {
   // Pagination Active Index
   const [currentPage, setCurrentPage] = useState(1);
 
+  // Sync URL search query to local state
+  React.useEffect(() => {
+    setSearchQuery(searchParamVal);
+    setCurrentPage(1); // Reset page on new search
+  }, [searchParamVal]);
+
+  // Fetch Categories once on mount
+  React.useEffect(() => {
+    const fetchCats = async () => {
+      try {
+        const res = await fetch('/api/admin/categories');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success) {
+            setCategories(data.data || []);
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching categories:', err);
+      }
+    };
+    fetchCats();
+  }, []);
+
+  // Fetch Products based on filter parameters
+  const fetchProducts = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      params.set('page', String(currentPage));
+      params.set('limit', '8'); // 8 items displayed per design mockup
+      
+      if (searchQuery) {
+        params.set('search', searchQuery);
+      }
+      if (categoryFilter) {
+        params.set('category', categoryFilter);
+      }
+      
+      // Price Sorting mapping
+      if (priceSort === 'cheap') {
+        params.set('sort', 'price_asc');
+      } else if (priceSort === 'expensive') {
+        params.set('sort', 'price_desc');
+      } else if (activeTab === 'Best Seller') {
+        params.set('sort', 'popular');
+      } else {
+        params.set('sort', 'newest');
+      }
+
+      // Tag mapping
+      if (activeTab === 'Terbaru') {
+        params.set('tags', 'Terbaru');
+      } else if (activeTab === 'Best Seller') {
+        params.set('tags', 'Best Seller');
+      }
+
+      const res = await fetch(`/api/catalog?${params.toString()}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.data) {
+          let items = data.data.data || [];
+          
+          // Apply client-side delivery method filter (since pickup_methods is an array)
+          if (methodFilter) {
+            items = items.filter((p: any) => 
+              p.pickup_methods?.some((m: string) => m.toLowerCase().includes(methodFilter.toLowerCase()))
+            );
+          }
+
+          // Map items from backend schemas to match expected UI layout structures perfectly
+          const mappedItems = items.map((p: any) => ({
+            id: p.id,
+            name: p.name,
+            category: p.category?.name || 'Tanaman',
+            price: p.price,
+            unit: p.unit || 'buah',
+            rating: p.rating_avg ? Number(p.rating_avg) : 4.9,
+            reviews: p.rating_count || 12,
+            stock: p.stock,
+            tags: p.tags || [],
+            description: p.description || 'Tanaman berkualitas unggulan hasil perawatan organik khusus.',
+            features: p.pickup_methods || ['Dikirim (Tiba dalam 2-3 jam)', 'Ambil Langsung'],
+            thumbnails: ['Thumbnail Daun', 'Thumbnail Pohon', 'Thumbnail Bunga'],
+            image_url: p.image_url
+          }));
+
+          setProducts(mappedItems);
+          setTotal(data.data.total || 0);
+          setTotalPages(data.data.totalPages || 1);
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching products:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [currentPage, searchQuery, categoryFilter, priceSort, activeTab, methodFilter]);
+
+  React.useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
+
+  // Real add-to-cart via API
+  const addToCart = useCallback(async (productId: string | number, productName: string, qty: number = 1) => {
+    setAddingToCart(productId);
+    try {
+      const res = await fetch('/api/cart', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plant_id: String(productId), quantity: qty }),
+      });
+      const data = await res.json();
+      if (res.status === 401) {
+        router.push(`/login?from=/toko`);
+        return;
+      }
+      if (data.success) {
+        window.dispatchEvent(new Event('cart-updated'));
+        alert(`${productName} berhasil ditambahkan ke keranjang!`);
+      } else {
+        alert(data.error || 'Gagal menambahkan ke keranjang.');
+      }
+    } catch {
+      alert('Terjadi kesalahan jaringan.');
+    } finally {
+      setAddingToCart(null);
+    }
+  }, [router]);
+
   // Wishlist toggle handler
-  const toggleWishlist = (id: number) => {
+  const toggleWishlist = (id: string | number) => {
     setWishlist(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
-  // Filtered Products computation
-  const filteredProducts = useMemo(() => {
-    return PRODUCTS.filter(product => {
-      // 1. Search Query
-      if (searchQuery && !product.name.toLowerCase().includes(searchQuery.toLowerCase())) {
-        return false;
-      }
-      // 2. Navigation Tab (Terbaru / Best Seller)
-      if (activeTab === 'Terbaru' && !product.tags.includes('Terbaru')) {
-        return false;
-      }
-      if (activeTab === 'Best Seller' && !product.tags.includes('Best Seller')) {
-        return false;
-      }
-      // 3. Category Dropdown
-      if (categoryFilter && product.category !== categoryFilter) {
-        return false;
-      }
-      // 4. Method Filter
-      if (methodFilter) {
-        const matchesMethod = product.features.some(f => f.toLowerCase().includes(methodFilter.toLowerCase()));
-        if (!matchesMethod) return false;
-      }
-      return true;
-    }).sort((a, b) => {
-      // 5. Price Sort
-      if (priceSort === 'cheap') {
-        return a.price - b.price;
-      }
-      if (priceSort === 'expensive') {
-        return b.price - a.price;
-      }
-      return 0;
-    });
-  }, [searchQuery, activeTab, categoryFilter, priceSort, methodFilter]);
+  // Alias filteredProducts to our dynamically fetched and mapped products state
+  const filteredProducts = products;
 
   // Handle open product detail
-  const openProductDetail = (product: typeof PRODUCTS[0]) => {
+  const openProductDetail = (product: any) => {
     setSelectedProduct(product);
     setQuantity(3); // Reset quantity counter to 3 as in mockup
     setActiveDetailTab('deskripsi');
@@ -219,71 +328,7 @@ export default function TokoKatalogPage() {
     <div className="flex flex-col min-h-screen bg-[#fcfdfc] font-sans antialiased text-[#274235]">
 
       {/* 1. Header/Navbar */}
-      <header className="sticky top-0 z-50 w-full backdrop-blur-md bg-white/80 border-b border-[#e2ede7] transition-all duration-300">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-
-          {/* Logo (Cropped Transparent logo_v4.png) */}
-          <Link href="/" className="flex items-center group">
-            <div className="relative w-64 h-16 transition-all duration-300 group-hover:scale-102">
-              <NextImage
-                src="/images/logo_v4.png"
-                alt="Botani Mart Logo"
-                fill
-                priority
-                className="object-contain"
-              />
-            </div>
-          </Link>
-
-          {/* Navigation Links */}
-          <nav className="hidden md:flex items-center gap-8">
-            <Link href="/" className="text-sm font-semibold text-brand-sage hover:text-brand-forest transition-colors">
-              Beranda
-            </Link>
-            <Link href="/toko" className="text-sm font-semibold text-brand-emerald border-b-2 border-brand-emerald pb-1 transition-all">
-              Toko
-            </Link>
-            <Link href="/kegiatan" className="text-sm font-semibold text-brand-sage hover:text-brand-forest transition-colors">
-              Kegiatan
-            </Link>
-            <Link href="#informasi" className="text-sm font-semibold text-brand-sage hover:text-brand-forest transition-colors">
-              Informasi
-            </Link>
-            <Link href="#kontak" className="text-sm font-semibold text-brand-sage hover:text-brand-forest transition-colors">
-              Kontak
-            </Link>
-          </nav>
-
-          {/* Right Action Icons */}
-          <div className="flex items-center gap-4">
-            {/* Wishlist Link Icon */}
-            <button
-              className="p-2.5 rounded-full hover:bg-brand-cream text-brand-sage hover:text-brand-forest transition-all relative"
-              aria-label="Wishlist"
-              onClick={() => alert('Fitur Wishlist sedang dikembangkan!')}
-            >
-              <Heart className="w-5 h-5" />
-            </button>
-
-            {/* Shopping Cart */}
-            <button
-              className="p-2.5 rounded-full hover:bg-brand-cream text-brand-sage hover:text-brand-forest transition-all relative"
-              aria-label="Keranjang Belanja"
-              onClick={() => alert('Fitur Keranjang Belanja sedang dikembangkan!')}
-            >
-              <ShoppingBag className="w-5 h-5" />
-              {cartCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-brand-emerald text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center border border-white">
-                  {cartCount}
-                </span>
-              )}
-            </button>
-
-            {/* Auth Button (Login or Profile) */}
-            <AuthButton />
-          </div>
-        </div>
-      </header>
+      <Navbar activePage="toko" />
 
       {/* Main App Container */}
       <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in-up">
@@ -342,12 +387,16 @@ export default function TokoKatalogPage() {
               <div className="flex flex-col text-left">
                 <select
                   value={categoryFilter}
-                  onChange={(e) => setCategoryFilter(e.target.value)}
+                  onChange={(e) => {
+                    setCategoryFilter(e.target.value);
+                    setCurrentPage(1);
+                  }}
                   className="w-full bg-white border border-[#e2ede7] rounded-2xl py-3.5 px-5 text-sm font-semibold text-brand-forest focus:outline-none focus:ring-2 focus:ring-brand-emerald shadow-sm cursor-pointer"
                 >
                   <option value="">Kategori</option>
-                  <option value="Bibit Buah">Bibit Buah</option>
-                  <option value="Tanaman Hias">Tanaman Hias</option>
+                  {categories.map((cat: any) => (
+                    <option key={cat.id} value={cat.slug}>{cat.name}</option>
+                  ))}
                 </select>
               </div>
 
@@ -355,7 +404,10 @@ export default function TokoKatalogPage() {
               <div className="flex flex-col text-left">
                 <select
                   value={priceSort}
-                  onChange={(e) => setPriceSort(e.target.value)}
+                  onChange={(e) => {
+                    setPriceSort(e.target.value);
+                    setCurrentPage(1);
+                  }}
                   className="w-full bg-white border border-[#e2ede7] rounded-2xl py-3.5 px-5 text-sm font-semibold text-brand-forest focus:outline-none focus:ring-2 focus:ring-brand-emerald shadow-sm cursor-pointer"
                 >
                   <option value="">Harga</option>
@@ -368,7 +420,10 @@ export default function TokoKatalogPage() {
               <div className="flex flex-col text-left">
                 <select
                   value={methodFilter}
-                  onChange={(e) => setMethodFilter(e.target.value)}
+                  onChange={(e) => {
+                    setMethodFilter(e.target.value);
+                    setCurrentPage(1);
+                  }}
                   className="w-full bg-white border border-[#e2ede7] rounded-2xl py-3.5 px-5 text-sm font-semibold text-brand-forest focus:outline-none focus:ring-2 focus:ring-brand-emerald shadow-sm cursor-pointer"
                 >
                   <option value="">Pengambilan</option>
@@ -379,126 +434,162 @@ export default function TokoKatalogPage() {
 
             </div>
 
-            {/* Products Grid (8 Items based on layout) */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 pt-4">
-              {filteredProducts.map(product => (
-                <div
-                  key={product.id}
-                  onClick={() => openProductDetail(product)}
-                  className="bg-white rounded-3xl border border-[#e2ede7] overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col group relative cursor-pointer"
-                >
-                  {/* Wishlist Heart Icon */}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      toggleWishlist(product.id);
-                    }}
-                    className="absolute top-4 right-4 z-20 w-9 h-9 rounded-full bg-white/90 hover:bg-white shadow-sm flex items-center justify-center text-zinc-400 hover:text-red-500 transition-colors cursor-pointer"
-                    aria-label="Simpan ke Wishlist"
-                  >
-                    <Heart
-                      className={`w-4.5 h-4.5 transition-all ${wishlist[product.id] ? 'fill-red-500 text-red-500 scale-110' : 'text-zinc-400'}`}
-                    />
-                  </button>
-
-                  {/* Empty Image Container / Placeholder (No Plant Images per instruction) */}
-                  <div
-                    className="h-56 w-full bg-brand-cream border-b border-[#e2ede7] flex flex-col items-center justify-center text-brand-sage select-none"
-                  >
-                    <div className="w-12 h-12 rounded-full bg-white/80 flex items-center justify-center text-brand-sage shadow-inner mb-2 group-hover:scale-105 transition-transform duration-300">
-                      <Leaf className="w-6 h-6 rotate-12 opacity-80" />
-                    </div>
-                    <span className="text-[10px] text-brand-sage/60 font-semibold tracking-wider">Gambar Tanaman</span>
+            {/* Loading / Catalog Products Grid (8 Items based on layout) */}
+            {loading ? (
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 pt-4">
+                {[...Array(8)].map((_, idx) => (
+                  <div key={idx} className="bg-white rounded-3xl border border-[#e2ede7] overflow-hidden shadow-sm h-96 flex flex-col p-5 space-y-4 animate-pulse">
+                    <div className="h-44 w-full bg-brand-cream rounded-2xl" />
+                    <div className="h-4 w-1/3 bg-brand-cream rounded-full" />
+                    <div className="h-6 w-3/4 bg-brand-cream rounded-full" />
+                    <div className="h-5 w-1/2 bg-brand-cream rounded-full" />
                   </div>
-
-                  {/* Card Info Section */}
-                  <div className="p-5 flex-1 flex flex-col text-left space-y-2">
-                    <span className="text-[10px] font-bold text-brand-sage tracking-wider uppercase">
-                      {product.category}
-                    </span>
-
-                    <h3
-                      className="font-heading font-extrabold text-base text-[#1e3329] group-hover:text-brand-emerald transition-colors"
-                    >
-                      {product.name}
-                    </h3>
-
-                    <div className="text-base font-bold text-brand-emerald">
-                      Rp. {product.price.toLocaleString('id-ID')}
-                    </div>
-
-                    <div className="flex items-center gap-1 text-xs text-brand-sage font-semibold">
-                      <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
-                      <span>{product.rating}</span>
-                    </div>
-
-                    {/* Actions Double Button */}
-                    <div className="pt-3 flex gap-2 border-t border-brand-cream mt-auto">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setCartCount(prev => prev + 1);
-                          alert(`${product.name} telah ditambahkan ke keranjang!`);
-                        }}
-                        className="w-11 h-11 rounded-2xl border border-[#e2ede7] hover:bg-brand-cream text-brand-emerald flex items-center justify-center transition-colors shrink-0 cursor-pointer"
-                        aria-label="Masukkan Keranjang"
-                      >
-                        <ShoppingBag className="w-4.5 h-4.5" />
-                      </button>
-                      <button
-                        className="flex-1 py-2.5 rounded-2xl bg-brand-forest hover:bg-brand-emerald text-white text-xs font-bold tracking-wider uppercase transition-all duration-300 cursor-pointer text-center"
-                      >
-                        Beli Sekarang
-                      </button>
-                    </div>
-                  </div>
+                ))}
+              </div>
+            ) : filteredProducts.length === 0 ? (
+              <div className="text-center py-16 px-4 bg-white rounded-3xl border border-[#e2ede7] max-w-lg mx-auto space-y-4 shadow-sm animate-fade-in-up">
+                <div className="w-16 h-16 rounded-full bg-brand-cream flex items-center justify-center text-brand-sage mx-auto shadow-inner">
+                  <Leaf className="w-8 h-8 opacity-65" />
                 </div>
-              ))}
-            </div>
+                <h3 className="font-heading font-extrabold text-xl text-[#1e3329]">
+                  Tidak Ada Tanaman
+                </h3>
+                <p className="text-brand-sage text-sm leading-relaxed max-w-sm mx-auto font-medium">
+                  Kami tidak dapat menemukan tanaman yang sesuai dengan pencarian atau filter Anda saat ini.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 pt-4">
+                {filteredProducts.map(product => (
+                  <div
+                    key={product.id}
+                    onClick={() => openProductDetail(product)}
+                    className="bg-white rounded-3xl border border-[#e2ede7] overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col group relative cursor-pointer"
+                  >
+                    {/* Wishlist Heart Icon */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleWishlist(product.id);
+                      }}
+                      className="absolute top-4 right-4 z-20 w-9 h-9 rounded-full bg-white/90 hover:bg-white shadow-sm flex items-center justify-center text-zinc-400 hover:text-red-500 transition-colors cursor-pointer"
+                      aria-label="Simpan ke Wishlist"
+                    >
+                      <Heart
+                        className={`w-4.5 h-4.5 transition-all ${wishlist[product.id] ? 'fill-red-500 text-red-500 scale-110' : 'text-zinc-400'}`}
+                      />
+                    </button>
 
-            {/* Pagination dinamis matching mockup (<- 1 2 3 ... 10 ->) */}
-            <div className="flex justify-center items-center gap-2 pt-8 select-none">
-              <button
-                onClick={() => currentPage > 1 && setCurrentPage(prev => prev - 1)}
-                className="w-10 h-10 rounded-full border border-[#e2ede7] hover:bg-brand-cream flex items-center justify-center text-brand-sage transition-colors cursor-pointer"
-                aria-label="Halaman Sebelumnya"
-              >
-                <ChevronLeft className="w-5 h-5" />
-              </button>
+                    {/* Plant Image or Empty Placeholder */}
+                    {product.image_url ? (
+                      <div className="h-56 w-full relative overflow-hidden bg-brand-cream border-b border-[#e2ede7]">
+                        <NextImage
+                          src={product.image_url}
+                          alt={product.name}
+                          fill
+                          className="object-cover group-hover:scale-102 transition-transform duration-500"
+                          sizes="(max-width: 768px) 50vw, 25vw"
+                        />
+                      </div>
+                    ) : (
+                      <div
+                        className="h-56 w-full bg-brand-cream border-b border-[#e2ede7] flex flex-col items-center justify-center text-brand-sage select-none"
+                      >
+                        <div className="w-12 h-12 rounded-full bg-white/80 flex items-center justify-center text-brand-sage shadow-inner mb-2 group-hover:scale-105 transition-transform duration-300">
+                          <Leaf className="w-6 h-6 rotate-12 opacity-80" />
+                        </div>
+                        <span className="text-[10px] text-brand-sage/60 font-semibold tracking-wider">Gambar Tanaman</span>
+                      </div>
+                    )}
 
-              {[1, 2, 3].map(page => (
+                    {/* Card Info Section */}
+                    <div className="p-5 flex-1 flex flex-col text-left space-y-2">
+                      <span className="text-[10px] font-bold text-brand-sage tracking-wider uppercase">
+                        {product.category}
+                      </span>
+
+                      <h3
+                        className="font-heading font-extrabold text-base text-[#1e3329] group-hover:text-brand-emerald transition-colors"
+                      >
+                        {product.name}
+                      </h3>
+
+                      <div className="text-base font-bold text-brand-emerald">
+                        Rp. {product.price.toLocaleString('id-ID')}
+                      </div>
+
+                      <div className="flex items-center gap-1 text-xs text-brand-sage font-semibold">
+                        <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
+                        <span>{product.rating} ({product.reviews})</span>
+                      </div>
+
+                      {/* Actions Double Button */}
+                      <div className="pt-3 flex gap-2 border-t border-brand-cream mt-auto">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            addToCart(product.id, product.name);
+                          }}
+                          disabled={addingToCart === product.id}
+                          className="w-11 h-11 rounded-2xl border border-[#e2ede7] hover:bg-brand-cream text-brand-emerald flex items-center justify-center transition-colors shrink-0 cursor-pointer disabled:opacity-50"
+                          aria-label="Masukkan Keranjang"
+                        >
+                          <ShoppingBag className="w-4.5 h-4.5" />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openProductDetail(product);
+                          }}
+                          className="flex-1 py-2.5 rounded-2xl bg-brand-forest hover:bg-brand-emerald text-white text-xs font-bold tracking-wider uppercase transition-all duration-300 cursor-pointer text-center"
+                        >
+                          Beli Sekarang
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Dynamic Pagination matching mockup */}
+            {totalPages > 1 && (
+              <div className="flex justify-center items-center gap-2 pt-8 select-none">
                 <button
-                  key={page}
-                  onClick={() => setCurrentPage(page)}
-                  className={`w-10 h-10 rounded-full text-sm font-bold transition-all cursor-pointer ${currentPage === page
-                    ? 'bg-brand-forest text-white shadow-md'
-                    : 'border border-[#e2ede7] hover:bg-brand-cream text-brand-sage'
-                    }`}
+                  onClick={() => currentPage > 1 && setCurrentPage(prev => prev - 1)}
+                  disabled={currentPage === 1}
+                  className="w-10 h-10 rounded-full border border-[#e2ede7] hover:bg-brand-cream flex items-center justify-center text-brand-sage disabled:opacity-40 transition-colors cursor-pointer"
+                  aria-label="Halaman Sebelumnya"
                 >
-                  {page}
+                  <ChevronLeft className="w-5 h-5" />
                 </button>
-              ))}
 
-              <span className="text-brand-sage text-sm font-bold px-1">...</span>
+                {[...Array(totalPages)].map((_, idx) => {
+                  const page = idx + 1;
+                  return (
+                    <button
+                      key={page}
+                      onClick={() => setCurrentPage(page)}
+                      className={`w-10 h-10 rounded-full text-sm font-bold transition-all cursor-pointer ${currentPage === page
+                        ? 'bg-brand-forest text-white shadow-md'
+                        : 'border border-[#e2ede7] hover:bg-brand-cream text-brand-sage'
+                        }`}
+                    >
+                      {page}
+                    </button>
+                  );
+                })}
 
-              <button
-                onClick={() => setCurrentPage(10)}
-                className={`w-10 h-10 rounded-full text-sm font-bold transition-all cursor-pointer ${currentPage === 10
-                  ? 'bg-brand-forest text-white shadow-md'
-                  : 'border border-[#e2ede7] hover:bg-brand-cream text-brand-sage'
-                  }`}
-              >
-                10
-              </button>
-
-              <button
-                onClick={() => currentPage < 10 && setCurrentPage(prev => prev + 1)}
-                className="w-10 h-10 rounded-full border border-[#e2ede7] hover:bg-brand-cream flex items-center justify-center text-brand-sage transition-colors cursor-pointer"
-                aria-label="Halaman Selanjutnya"
-              >
-                <ChevronRight className="w-5 h-5" />
-              </button>
-            </div>
+                <button
+                  onClick={() => currentPage < totalPages && setCurrentPage(prev => prev + 1)}
+                  disabled={currentPage === totalPages}
+                  className="w-10 h-10 rounded-full border border-[#e2ede7] hover:bg-brand-cream flex items-center justify-center text-brand-sage disabled:opacity-40 transition-colors cursor-pointer"
+                  aria-label="Halaman Selanjutnya"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              </div>
+            )}
 
           </div>
         ) : (
@@ -531,31 +622,89 @@ export default function TokoKatalogPage() {
             {/* Main Detail Columns */}
             <div className="grid lg:grid-cols-12 gap-12">
 
-              {/* Kolom Kiri: Visual Gambar Placeholder */}
+              {/* Kolom Kiri: Visual Gambar Tanaman / Placeholder */}
               <div className="lg:col-span-5 space-y-4">
 
-                {/* Large Main Placeholder Container */}
-                <div className="aspect-square w-full rounded-3xl bg-brand-cream border border-[#e2ede7] flex flex-col items-center justify-center text-brand-sage shadow-sm relative overflow-hidden">
-                  <div className="absolute inset-0 bg-gradient-to-br from-brand-lime/10 to-brand-cream z-0" />
-                  <Leaf className="w-16 h-16 rotate-12 opacity-40 mb-3 z-10 animate-pulse" />
-                  <span className="text-sm text-brand-sage/60 font-semibold z-10">Gambar Tanaman Utama</span>
-                </div>
+                {/* Main Large Image Container */}
+                {selectedProduct.image_url ? (
+                  <div className="aspect-square w-full rounded-3xl relative overflow-hidden bg-brand-cream border border-[#e2ede7] shadow-sm flex items-center justify-center">
+                    <NextImage
+                      src={selectedProduct.image_url}
+                      alt={selectedProduct.name}
+                      fill
+                      className="object-cover"
+                      priority
+                      sizes="(max-width: 1024px) 100vw, 40vw"
+                    />
+                  </div>
+                ) : (
+                  <div className="aspect-square w-full rounded-3xl bg-brand-cream border border-[#e2ede7] flex flex-col items-center justify-center text-brand-sage shadow-sm relative overflow-hidden">
+                    <div className="absolute inset-0 bg-gradient-to-br from-brand-lime/10 to-brand-cream z-0" />
+                    <Leaf className="w-16 h-16 rotate-12 opacity-40 mb-3 z-10 animate-pulse" />
+                    <span className="text-sm text-brand-sage/60 font-semibold z-10">Gambar Tanaman Utama</span>
+                  </div>
+                )}
 
                 {/* Thumbnails Row (3 Thumbnails) */}
                 <div className="grid grid-cols-3 gap-4">
-                  {selectedProduct.thumbnails.map((thumb, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => setSelectedThumbnail(idx)}
-                      className={`aspect-square w-full rounded-2xl border flex flex-col items-center justify-center text-[10px] text-brand-sage/60 font-bold transition-all relative overflow-hidden cursor-pointer ${selectedThumbnail === idx
-                        ? 'border-brand-emerald bg-brand-cream/80 ring-2 ring-brand-emerald/10'
-                        : 'border-[#e2ede7] bg-brand-cream hover:bg-brand-cream/60'
-                        }`}
-                    >
-                      <Leaf className="w-5 h-5 opacity-30 mb-1" />
-                      <span>{thumb}</span>
-                    </button>
-                  ))}
+                  {selectedProduct.image_url ? (
+                    <>
+                      {/* Thumbnail 1 - Real Plant Image */}
+                      <button
+                        onClick={() => setSelectedThumbnail(0)}
+                        className={`aspect-square w-full rounded-2xl border relative overflow-hidden cursor-pointer ${selectedThumbnail === 0
+                          ? 'border-brand-emerald ring-3 ring-brand-emerald/10'
+                          : 'border-[#e2ede7]'
+                          }`}
+                      >
+                        <NextImage
+                          src={selectedProduct.image_url}
+                          alt="Thumbnail Utama"
+                          fill
+                          className="object-cover"
+                          sizes="120px"
+                        />
+                      </button>
+
+                      {/* Thumbnail 2 - Detail Daun placeholder */}
+                      <button
+                        onClick={() => setSelectedThumbnail(1)}
+                        className={`aspect-square w-full rounded-2xl border flex flex-col items-center justify-center text-[10px] text-brand-sage/60 font-bold transition-all relative overflow-hidden cursor-pointer ${selectedThumbnail === 1
+                          ? 'border-brand-emerald bg-brand-cream/80 ring-3 ring-brand-emerald/10'
+                          : 'border-[#e2ede7] bg-brand-cream hover:bg-brand-cream/60'
+                          }`}
+                      >
+                        <Leaf className="w-5 h-5 opacity-30 mb-1" />
+                        <span>Detail Daun</span>
+                      </button>
+
+                      {/* Thumbnail 3 - Detail Akar placeholder */}
+                      <button
+                        onClick={() => setSelectedThumbnail(2)}
+                        className={`aspect-square w-full rounded-2xl border flex flex-col items-center justify-center text-[10px] text-brand-sage/60 font-bold transition-all relative overflow-hidden cursor-pointer ${selectedThumbnail === 2
+                          ? 'border-brand-emerald bg-brand-cream/80 ring-3 ring-brand-emerald/10'
+                          : 'border-[#e2ede7] bg-brand-cream hover:bg-brand-cream/60'
+                          }`}
+                      >
+                        <Compass className="w-5 h-5 opacity-30 mb-1" />
+                        <span>Media Tanam</span>
+                      </button>
+                    </>
+                  ) : (
+                    selectedProduct.thumbnails.map((thumb: string, idx: number) => (
+                      <button
+                        key={idx}
+                        onClick={() => setSelectedThumbnail(idx)}
+                        className={`aspect-square w-full rounded-2xl border flex flex-col items-center justify-center text-[10px] text-brand-sage/60 font-bold transition-all relative overflow-hidden cursor-pointer ${selectedThumbnail === idx
+                          ? 'border-brand-emerald bg-brand-cream/80 ring-2 ring-brand-emerald/10'
+                          : 'border-[#e2ede7] bg-brand-cream hover:bg-brand-cream/60'
+                          }`}
+                      >
+                        <Leaf className="w-5 h-5 opacity-30 mb-1" />
+                        <span>{thumb}</span>
+                      </button>
+                    ))
+                  )}
                 </div>
               </div>
 
@@ -638,10 +787,8 @@ export default function TokoKatalogPage() {
                 {/* Primary Action Buttons */}
                 <div className="pt-4 flex flex-col sm:flex-row gap-4 border-t border-brand-cream">
                   <button
-                    onClick={() => {
-                      setCartCount(prev => prev + quantity);
-                      alert(`${quantity} ${selectedProduct.name} ditambahkan ke keranjang belanja!`);
-                    }}
+                    onClick={() => addToCart(selectedProduct.id, selectedProduct.name, quantity)}
+                    disabled={addingToCart === selectedProduct.id}
                     className="flex-1 py-4.5 rounded-2xl border-2 border-brand-emerald hover:bg-brand-cream text-brand-emerald font-heading font-bold text-sm tracking-wider uppercase transition-colors cursor-pointer flex items-center justify-center gap-2"
                   >
                     <ShoppingBag className="w-5 h-5" />
@@ -649,7 +796,31 @@ export default function TokoKatalogPage() {
                   </button>
 
                   <button
-                    onClick={() => alert(`Membeli ${quantity} ${selectedProduct.name} langsung!`)}
+                    onClick={async () => {
+                      setAddingToCart(selectedProduct.id);
+                      try {
+                        const res = await fetch('/api/cart', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ plant_id: String(selectedProduct.id), quantity }),
+                        });
+                        if (res.status === 401) {
+                          router.push('/login?from=/toko');
+                          return;
+                        }
+                        const data = await res.json();
+                        if (data.success) {
+                          router.push('/checkout');
+                        } else {
+                          alert(data.error || 'Gagal menambahkan ke keranjang.');
+                        }
+                      } catch {
+                        alert('Terjadi kesalahan jaringan.');
+                      } finally {
+                        setAddingToCart(null);
+                      }
+                    }}
+                    disabled={addingToCart === selectedProduct.id}
                     className="flex-1 py-4.5 rounded-2xl bg-brand-forest hover:bg-brand-emerald text-white font-heading font-bold text-sm tracking-wider uppercase shadow-md hover:shadow-lg transition-all cursor-pointer text-center"
                   >
                     Beli Sekarang
@@ -747,7 +918,7 @@ export default function TokoKatalogPage() {
 
               {/* Grid of 4 Similar Products */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
-                {PRODUCTS.filter(p => p.id !== selectedProduct.id).slice(0, 4).map(recommendation => (
+                {products.filter(p => p.id !== selectedProduct.id).slice(0, 4).map(recommendation => (
                   <div
                     key={recommendation.id}
                     onClick={() => openProductDetail(recommendation)}
@@ -767,13 +938,25 @@ export default function TokoKatalogPage() {
                       />
                     </button>
 
-                    {/* Empty image block placeholder */}
-                    <div
-                      className="h-44 w-full bg-brand-cream border-b border-[#e2ede7] flex flex-col items-center justify-center text-brand-sage select-none"
-                    >
-                      <Leaf className="w-5 h-5 opacity-40 mb-1 rotate-12" />
-                      <span className="text-[9px] text-brand-sage/60 font-semibold">Gambar Tanaman</span>
-                    </div>
+                    {/* Plant image or placeholder */}
+                    {recommendation.image_url ? (
+                      <div className="h-44 w-full relative overflow-hidden bg-brand-cream border-b border-[#e2ede7]">
+                        <NextImage
+                          src={recommendation.image_url}
+                          alt={recommendation.name}
+                          fill
+                          className="object-cover group-hover:scale-102 transition-transform duration-500"
+                          sizes="(max-width: 768px) 50vw, 25vw"
+                        />
+                      </div>
+                    ) : (
+                      <div
+                        className="h-44 w-full bg-brand-cream border-b border-[#e2ede7] flex flex-col items-center justify-center text-brand-sage select-none"
+                      >
+                        <Leaf className="w-5 h-5 opacity-40 mb-1 rotate-12" />
+                        <span className="text-[9px] text-brand-sage/60 font-semibold">Gambar Tanaman</span>
+                      </div>
+                    )}
 
                     {/* Card Info Section */}
                     <div className="p-4 flex-1 flex flex-col text-left space-y-1.5">
@@ -793,7 +976,7 @@ export default function TokoKatalogPage() {
 
                       <div className="flex items-center gap-1 text-xs text-brand-sage font-semibold">
                         <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                        <span>{recommendation.rating}</span>
+                        <span>{recommendation.rating} ({recommendation.reviews})</span>
                       </div>
 
                       {/* Actions Double Button */}
@@ -801,15 +984,19 @@ export default function TokoKatalogPage() {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            setCartCount(prev => prev + 1);
-                            alert(`${recommendation.name} telah ditambahkan ke keranjang!`);
+                            addToCart(recommendation.id, recommendation.name);
                           }}
-                          className="w-9 h-9 rounded-xl border border-[#e2ede7] hover:bg-brand-cream text-brand-emerald flex items-center justify-center transition-colors shrink-0 cursor-pointer"
+                          disabled={addingToCart === recommendation.id}
+                          className="w-9 h-9 rounded-xl border border-[#e2ede7] hover:bg-brand-cream text-brand-emerald flex items-center justify-center transition-colors shrink-0 cursor-pointer disabled:opacity-50"
                           aria-label="Masukkan Keranjang"
                         >
                           <ShoppingBag className="w-4 h-4" />
                         </button>
                         <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openProductDetail(recommendation);
+                          }}
                           className="flex-1 py-1.5 rounded-xl bg-brand-forest hover:bg-brand-emerald text-white text-[10px] font-bold tracking-wider uppercase transition-all duration-300 cursor-pointer text-center"
                         >
                           Beli Sekarang
@@ -828,75 +1015,16 @@ export default function TokoKatalogPage() {
       </main>
 
       {/* Footer */}
-      <footer className="bg-brand-cream border-t border-[#e2ede7] py-12 text-center mt-12" id="kontak">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col items-center space-y-6">
-
-          {/* Footer Logo (using cropped transparent v4 logo) */}
-          <div className="relative w-56 h-14 select-none">
-            <NextImage
-              src="/images/logo_v4.png"
-              alt="Botani Mart Logo"
-              fill
-              className="object-contain brightness-95"
-            />
-          </div>
-
-          {/* Social Media Link Icons with Real Brand Colors */}
-          <div className="flex gap-6 items-center justify-center">
-            {/* TikTok */}
-            <a
-              href="https://tiktok.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-12 h-12 rounded-full bg-white hover:scale-110 active:scale-95 shadow-md flex items-center justify-center group transition-all duration-300"
-              aria-label="Botani Mart di TikTok"
-            >
-              <svg className="w-5.5 h-5.5 text-zinc-900 group-hover:text-black transition-colors" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.17-2.86-.74-3.94-1.74-.22-.2-.42-.42-.61-.65v7.17c.02 1.37-.3 2.77-.97 3.97-.93 1.66-2.52 2.91-4.37 3.42-2.14.61-4.52.41-6.5-.59-1.99-1.01-3.48-2.92-4.04-5.13-.64-2.52-.16-5.32 1.34-7.4 1.44-2.02 3.75-3.32 6.24-3.49v4.03c-1.31.09-2.6.64-3.47 1.62-.91 1.02-1.24 2.45-1.02 3.8.21 1.25.96 2.38 2.02 3.06 1.09.7 2.42.87 3.65.55 1.1-.28 2.05-1.04 2.58-2.05.41-.78.56-1.68.54-2.56V.02h.01z" />
-              </svg>
-            </a>
-
-            {/* Instagram */}
-            <a
-              href="https://instagram.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-12 h-12 rounded-full bg-white hover:scale-110 active:scale-95 shadow-md flex items-center justify-center group transition-all duration-300 relative overflow-hidden"
-              aria-label="Botani Mart di Instagram"
-            >
-              <span className="absolute inset-0 bg-gradient-to-tr from-[#f9ce34] via-[#ee2a7b] to-[#6228d7] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-              <svg className="w-5.5 h-5.5 text-zinc-900 group-hover:text-white transition-colors relative z-10" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.051.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z" />
-              </svg>
-            </a>
-
-            {/* WhatsApp */}
-            <a
-              href="https://wa.me/6281234567890"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-12 h-12 rounded-full bg-white hover:scale-110 active:scale-95 shadow-md flex items-center justify-center group transition-all duration-300 relative overflow-hidden"
-              aria-label="Botani Mart di WhatsApp"
-            >
-              <span className="absolute inset-0 bg-[#25d366] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-              <svg className="w-5.5 h-5.5 text-zinc-900 group-hover:text-white transition-colors relative z-10" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.455L0 24zm6.59-4.846c1.66.986 3.288 1.498 4.885 1.503 5.485.002 9.948-4.436 9.951-9.886.002-2.641-1.02-5.124-2.877-6.984C16.691 1.928 14.22 1.91 12.012 1.91 6.524 1.91 2.06 6.348 2.057 11.8.055 13.526.564 15.223 1.56 16.892l-.997 3.637 3.734-.969a9.7 9.7 0 001.35.59z" />
-              </svg>
-            </a>
-          </div>
-
-          <div className="space-y-1">
-            <p className="text-[11px] text-brand-sage font-semibold uppercase tracking-wider">
-              &copy; {new Date().getFullYear()} Botani Mart Bogor. Hak Cipta Dilindungi.
-            </p>
-            <p className="text-[9px] text-[#50685c]/60 font-medium">
-              Dirancang dengan penuh dedikasi untuk kebun rumah impian Anda.
-            </p>
-          </div>
-
-        </div>
-      </footer>
+      <Footer />
 
     </div>
+  );
+}
+
+export default function TokoKatalogPage() {
+  return (
+    <React.Suspense fallback={<div className="flex items-center justify-center min-h-screen bg-[#fcfdfc]"><div className="w-8 h-8 border-2 border-brand-emerald/30 border-t-brand-emerald rounded-full animate-spin" /></div>}>
+      <TokoKatalogPageContent />
+    </React.Suspense>
   );
 }

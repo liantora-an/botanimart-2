@@ -150,31 +150,42 @@ ALTER TABLE public.order_items  ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.activities   ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.reviews      ENABLE ROW LEVEL SECURITY;
 
+-- Helper function: is_admin (SECURITY DEFINER to avoid RLS loop and metadata spoofing)
+CREATE OR REPLACE FUNCTION public.is_admin()
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER SET search_path = public
+AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM public.users
+    WHERE id = auth.uid() AND role = 'Admin'
+  );
+END;
+$$;
+
 -- Users: own row read/update
 CREATE POLICY "users_select_own"  ON public.users FOR SELECT USING (auth.uid() = id);
 CREATE POLICY "users_update_own"  ON public.users FOR UPDATE USING (auth.uid() = id);
 CREATE POLICY "users_insert_self" ON public.users FOR INSERT WITH CHECK (auth.uid() = id);
--- Admin can read all users
+-- Admin can read all users (uses security definer function to bypass RLS loop safely)
 CREATE POLICY "users_admin_select" ON public.users FOR SELECT
-  USING (EXISTS (SELECT 1 FROM public.users u WHERE u.id = auth.uid() AND u.role = 'Admin'));
+  USING (
+    (auth.jwt() ->> 'role' = 'service_role')
+    OR (public.is_admin() = true)
+  );
 
 -- Categories: public read, admin write
 CREATE POLICY "categories_public_read" ON public.categories FOR SELECT USING (true);
-CREATE POLICY "categories_admin_insert" ON public.categories FOR INSERT
-  WITH CHECK (EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'Admin'));
-CREATE POLICY "categories_admin_update" ON public.categories FOR UPDATE
-  USING (EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'Admin'));
-CREATE POLICY "categories_admin_delete" ON public.categories FOR DELETE
-  USING (EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'Admin'));
+CREATE POLICY "categories_admin_insert" ON public.categories FOR INSERT WITH CHECK (public.is_admin() = true);
+CREATE POLICY "categories_admin_update" ON public.categories FOR UPDATE USING (public.is_admin() = true);
+CREATE POLICY "categories_admin_delete" ON public.categories FOR DELETE USING (public.is_admin() = true);
 
 -- Plants: public read, admin write
 CREATE POLICY "plants_public_read" ON public.plants FOR SELECT USING (true);
-CREATE POLICY "plants_admin_insert" ON public.plants FOR INSERT
-  WITH CHECK (EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'Admin'));
-CREATE POLICY "plants_admin_update" ON public.plants FOR UPDATE
-  USING (EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'Admin'));
-CREATE POLICY "plants_admin_delete" ON public.plants FOR DELETE
-  USING (EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'Admin'));
+CREATE POLICY "plants_admin_insert" ON public.plants FOR INSERT WITH CHECK (public.is_admin() = true);
+CREATE POLICY "plants_admin_update" ON public.plants FOR UPDATE USING (public.is_admin() = true);
+CREATE POLICY "plants_admin_delete" ON public.plants FOR DELETE USING (public.is_admin() = true);
 
 -- Carts: user sees/manages only their own
 CREATE POLICY "carts_own_select" ON public.carts FOR SELECT USING (auth.uid() = user_id);
@@ -186,13 +197,13 @@ CREATE POLICY "carts_own_delete" ON public.carts FOR DELETE USING (auth.uid() = 
 CREATE POLICY "orders_own_select" ON public.orders FOR SELECT
   USING (
     auth.uid() = user_id
-    OR EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'Admin')
+    OR (public.is_admin() = true)
   );
 CREATE POLICY "orders_own_insert" ON public.orders FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "orders_admin_update" ON public.orders FOR UPDATE
   USING (
     auth.uid() = user_id
-    OR EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'Admin')
+    OR (public.is_admin() = true)
   );
 
 -- Order Items: follows order access
@@ -200,7 +211,7 @@ CREATE POLICY "order_items_select" ON public.order_items FOR SELECT
   USING (EXISTS (
     SELECT 1 FROM public.orders o
     WHERE o.id = order_id
-    AND (o.user_id = auth.uid() OR EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'Admin'))
+    AND (o.user_id = auth.uid() OR (public.is_admin() = true))
   ));
 CREATE POLICY "order_items_insert" ON public.order_items FOR INSERT
   WITH CHECK (EXISTS (
@@ -209,14 +220,10 @@ CREATE POLICY "order_items_insert" ON public.order_items FOR INSERT
 
 -- Activities: public read (published), admin full access
 CREATE POLICY "activities_public_read" ON public.activities FOR SELECT USING (published = true);
-CREATE POLICY "activities_admin_read_all" ON public.activities FOR SELECT
-  USING (EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'Admin'));
-CREATE POLICY "activities_admin_insert" ON public.activities FOR INSERT
-  WITH CHECK (EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'Admin'));
-CREATE POLICY "activities_admin_update" ON public.activities FOR UPDATE
-  USING (EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'Admin'));
-CREATE POLICY "activities_admin_delete" ON public.activities FOR DELETE
-  USING (EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'Admin'));
+CREATE POLICY "activities_admin_read_all" ON public.activities FOR SELECT USING (public.is_admin() = true);
+CREATE POLICY "activities_admin_insert" ON public.activities FOR INSERT WITH CHECK (public.is_admin() = true);
+CREATE POLICY "activities_admin_update" ON public.activities FOR UPDATE USING (public.is_admin() = true);
+CREATE POLICY "activities_admin_delete" ON public.activities FOR DELETE USING (public.is_admin() = true);
 
 -- Reviews: public read, user inserts own
 CREATE POLICY "reviews_public_read" ON public.reviews FOR SELECT USING (true);

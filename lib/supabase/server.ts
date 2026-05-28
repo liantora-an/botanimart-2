@@ -18,10 +18,34 @@ export async function createClient() {
             cookiesToSet.forEach(({ name, value, options }) => {
               cookieStore.set(name, value, options);
             });
-          } catch (error) {
-            // The `setAll` method was called from a Server Component.
-            // This can be ignored if you have middleware refreshing
-            // user sessions.
+          } catch (error: any) {
+            console.error('[supabase.server] createClient setAll error:', error.message || error);
+          }
+        },
+      },
+    }
+  );
+}
+
+export async function createAdminClient() {
+  const cookieStore = await cookies();
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+
+  return createServerClient(
+    SUPABASE_URL,
+    serviceRoleKey,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll(cookiesToSet) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              cookieStore.set(name, value, options);
+            });
+          } catch (error: any) {
+            console.error('[supabase.server] createAdminClient setAll error:', error.message || error);
           }
         },
       },

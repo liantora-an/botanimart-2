@@ -1,5 +1,6 @@
 import { signUp, signIn, signOut, getCurrentUser } from '@/backend/services/auth.service';
 import type { RegisterRequest, LoginRequest } from '@/backend/types/api';
+import { NextResponse } from 'next/server';
 
 /**
  * auth.controller.ts
@@ -10,13 +11,13 @@ export async function handleRegister(body: RegisterRequest): Promise<Response> {
   const { email, password, full_name, phone } = body;
 
   if (!email || !password || !full_name) {
-    return Response.json(
+    return NextResponse.json(
       { success: false, error: 'Email, password, dan nama lengkap wajib diisi.' },
       { status: 400 }
     );
   }
   if (password.length < 8) {
-    return Response.json(
+    return NextResponse.json(
       { success: false, error: 'Password minimal 8 karakter.' },
       { status: 400 }
     );
@@ -25,13 +26,13 @@ export async function handleRegister(body: RegisterRequest): Promise<Response> {
   const result = await signUp({ email, password, full_name, phone });
 
   if (!result.success) {
-    return Response.json(
+    return NextResponse.json(
       { success: false, error: result.error },
       { status: 400 }
     );
   }
 
-  return Response.json(
+  return NextResponse.json(
     {
       success: true,
       message: 'Registrasi berhasil. Silakan cek email untuk verifikasi.',
@@ -45,7 +46,7 @@ export async function handleLogin(body: LoginRequest): Promise<Response> {
   const { email, password } = body;
 
   if (!email || !password) {
-    return Response.json(
+    return NextResponse.json(
       { success: false, error: 'Email dan password wajib diisi.' },
       { status: 400 }
     );
@@ -54,13 +55,13 @@ export async function handleLogin(body: LoginRequest): Promise<Response> {
   const result = await signIn({ email, password });
 
   if (!result.success) {
-    return Response.json(
+    return NextResponse.json(
       { success: false, error: result.error },
       { status: 401 }
     );
   }
 
-  return Response.json({
+  return NextResponse.json({
     success: true,
     message: 'Login berhasil.',
     data: {
@@ -74,18 +75,18 @@ export async function handleLogin(body: LoginRequest): Promise<Response> {
 
 export async function handleLogout(): Promise<Response> {
   await signOut();
-  return Response.json({ success: true, message: 'Logout berhasil.' });
+  return NextResponse.json({ success: true, message: 'Logout berhasil.' });
 }
 
 export async function handleGetMe(): Promise<Response> {
   const user = await getCurrentUser();
   if (!user) {
-    return Response.json(
+    return NextResponse.json(
       { success: false, error: 'Sesi tidak ditemukan.' },
       { status: 401 }
     );
   }
-  return Response.json({
+  return NextResponse.json({
     success: true,
     data: {
       id: user.id,

@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { User, LogOut, ShieldCheck, Loader2 } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 
 interface UserData {
   id: string;
@@ -14,6 +14,7 @@ interface UserData {
 
 export default function AuthButton() {
   const router = useRouter();
+  const pathname = usePathname();
   const [user, setUser] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -23,19 +24,25 @@ export default function AuthButton() {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const res = await fetch('/api/auth/me');
+        const res = await fetch(`/api/auth/me?t=${Date.now()}`, { cache: 'no-store' });
         if (res.ok) {
           const data = await res.json();
-          if (data.success) setUser(data.data);
+          if (data.success) {
+            setUser(data.data);
+          } else {
+            setUser(null);
+          }
+        } else {
+          setUser(null);
         }
       } catch {
-        // Not authenticated
+        setUser(null);
       } finally {
         setLoading(false);
       }
     };
     fetchUser();
-  }, []);
+  }, [pathname]);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -70,15 +77,27 @@ export default function AuthButton() {
     );
   }
 
-  // Not authenticated — show Daftar/Login
+  // Not authenticated — show Daftar/Login (responsive)
   if (!user) {
     return (
-      <Link
-        href="/login"
-        className="hidden sm:inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full bg-brand-emerald hover:bg-brand-forest text-white text-xs font-bold shadow-md hover:shadow-lg transition-all duration-300"
-      >
-        Daftar/Login
-      </Link>
+      <>
+        {/* Mobile View — sleek circular login button */}
+        <Link
+          href="/login"
+          className="flex sm:hidden items-center justify-center w-10 h-10 rounded-full bg-brand-cream hover:bg-brand-emerald/10 text-brand-emerald hover:text-brand-forest transition-all duration-300 border border-[#e2ede7] shadow-sm"
+          aria-label="Masuk ke Akun"
+        >
+          <User className="w-5 h-5" />
+        </Link>
+
+        {/* Desktop View — full pill button */}
+        <Link
+          href="/login"
+          className="hidden sm:inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full bg-brand-emerald hover:bg-brand-forest text-white text-xs font-bold shadow-md hover:shadow-lg transition-all duration-300"
+        >
+          Daftar/Login
+        </Link>
+      </>
     );
   }
 

@@ -6,9 +6,17 @@ import {
 import { requireAuth } from '@/backend/middlewares/auth.middleware';
 import { requireAdmin } from '@/backend/middlewares/role.middleware';
 
-// GET /api/activities — public (only published)
+// GET /api/activities — public (only published) / admin (all)
 export async function GET(request: NextRequest): Promise<Response> {
-  return handleListActivities(request.nextUrl.searchParams, false);
+  const adminParam = request.nextUrl.searchParams.get('admin') === 'true';
+  let adminMode = false;
+  if (adminParam) {
+    const authResult = await requireAuth().catch(() => null);
+    if (authResult && !(authResult instanceof Response) && authResult.role === 'Admin') {
+      adminMode = true;
+    }
+  }
+  return handleListActivities(request.nextUrl.searchParams, adminMode);
 }
 
 // POST /api/activities — Admin only
