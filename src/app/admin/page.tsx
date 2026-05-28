@@ -398,19 +398,9 @@ export default function AdminDashboardPage() {
     }
   };
 
-  // Open Edit Activity Modal
+  // Open Edit Activity Modal - Shortcut directly to kegiatan page in edit mode!
   const openEditActivity = (activity: any) => {
-    setEditingActivity(activity);
-    setActivityForm({
-      title: activity.title,
-      author: activity.author,
-      date: activity.created_at ? activity.created_at.split('T')[0] : new Date().toISOString().split('T')[0],
-      category: activity.category,
-      summary: activity.summary,
-      content: activity.content || '',
-      published: activity.published ?? true
-    });
-    setIsActivityModalOpen(true);
+    router.push(`/kegiatan?id=${activity.id}&edit=true`);
   };
 
   // Delete Activity

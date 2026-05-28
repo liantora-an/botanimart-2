@@ -1,4 +1,4 @@
-import { signUp, signIn, signOut, getCurrentUser } from '@/backend/services/auth.service';
+import { signUp, signIn, signOut, getCurrentUser, updateCurrentUser } from '@/backend/services/auth.service';
 import type { RegisterRequest, LoginRequest } from '@/backend/types/api';
 import { NextResponse } from 'next/server';
 
@@ -96,5 +96,33 @@ export async function handleGetMe(): Promise<Response> {
       address: user.address,
       role: user.role,
     },
+  });
+}
+
+export async function handleUpdateMe(body: {
+  full_name?: string;
+  phone?: string;
+  address?: string;
+}): Promise<Response> {
+  const user = await getCurrentUser();
+  if (!user) {
+    return NextResponse.json(
+      { success: false, error: 'Sesi tidak ditemukan.' },
+      { status: 401 }
+    );
+  }
+
+  const result = await updateCurrentUser(user.id, body);
+  if (!result.success) {
+    return NextResponse.json(
+      { success: false, error: result.error },
+      { status: 400 }
+    );
+  }
+
+  return NextResponse.json({
+    success: true,
+    message: 'Profil berhasil diperbarui.',
+    data: result.user,
   });
 }

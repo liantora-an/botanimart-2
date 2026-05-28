@@ -36,7 +36,7 @@ export default function Footer() {
 
           {/* Instagram - Vibrant Sunset Gradient Logo */}
           <a
-            href="https://instagram.com"
+            href="https://www.instagram.com/botanimartipb"
             target="_blank"
             rel="noopener noreferrer"
             className="w-12 h-12 rounded-full bg-white hover:scale-110 active:scale-95 shadow-md flex items-center justify-center group transition-all duration-300 relative overflow-hidden"
@@ -50,7 +50,7 @@ export default function Footer() {
 
           {/* WhatsApp - Glowing Green Logo */}
           <a
-            href="https://wa.me/6281234567890"
+            href="https://wa.me/6281110631132"
             target="_blank"
             rel="noopener noreferrer"
             className="w-12 h-12 rounded-full bg-white hover:scale-110 active:scale-95 shadow-md flex items-center justify-center group transition-all duration-300 relative overflow-hidden"
