@@ -978,16 +978,20 @@ function TokoKatalogPageContent() {
                 {activeDetailTab === 'deskripsi' ? (
                   <div className="text-brand-sage text-base space-y-4 max-w-4xl">
                     <p>{selectedProduct.description}</p>
-                    <p className="font-semibold text-brand-forest mt-2">
-                      Spesifikasi & Kelebihan:
-                    </p>
-                    <ul className="list-disc list-inside pl-4 space-y-1 text-sm font-medium">
-                      <li>Tinggi Tanaman: ± 50cm s.d 70cm</li>
-                      <li>Metode Perbanyakan: Okulasi vegetatif berkualitas</li>
-                      <li>Kebutuhan Sinar Matahari: Sepanjang hari</li>
-                      <li>Media Tanam Ideal: Campuran tanah, pupuk organik, sekam</li>
-                      <li>Kondisi Pengiriman: Bebas penyakit, dikemas rapi, akar terlindungi</li>
-                    </ul>
+                    {selectedProduct.tags && selectedProduct.tags.filter((t: string) => t !== 'Terbaru' && t !== 'Best Seller').length > 0 && (
+                      <>
+                        <p className="font-semibold text-brand-forest mt-2">
+                          Spesifikasi & Kelebihan:
+                        </p>
+                        <ul className="list-disc list-inside pl-4 space-y-1 text-sm font-medium">
+                          {selectedProduct.tags
+                            .filter((t: string) => t !== 'Terbaru' && t !== 'Best Seller')
+                            .map((tag: string, index: number) => (
+                              <li key={index}>{tag}</li>
+                            ))}
+                        </ul>
+                      </>
+                    )}
                   </div>
                 ) : (
                   <div className="space-y-8 max-w-3xl text-left">

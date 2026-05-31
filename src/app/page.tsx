@@ -1,12 +1,13 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Leaf,
   Search,
   ShoppingBag,
   MapPin,
+  Phone,
   ChevronLeft,
   ChevronRight,
   Star,
@@ -30,6 +31,35 @@ import NextImage from 'next/image';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 
+// Helper functions for dynamic pricing and formatting
+function formatRupiah(n: number): string {
+  return 'Rp ' + n.toLocaleString('id-ID');
+}
+
+const getCategoryGradient = (categoryName: string) => {
+  const name = categoryName ? categoryName.toLowerCase() : '';
+  if (name.includes('buah')) return 'from-[#e8f5e9] to-[#c8e6c9]'; // green
+  if (name.includes('pupuk') || name.includes('cair')) return 'from-[#e1f5fe] to-[#b3e5fc]'; // blue
+  if (name.includes('pot') || name.includes('alat')) return 'from-[#efebe9] to-[#d7ccc8]'; // brown
+  if (name.includes('hias') || name.includes('bunga')) return 'from-[#fce4ec] to-[#f8bbd0]'; // pink
+  if (name.includes('media')) return 'from-[#f1f8e9] to-[#dcedc8]'; // light green
+  return 'from-[#e2ede7] to-[#b8d5c5]'; // default
+};
+
+const getCategoryName = (category: any) => {
+  if (category && typeof category === 'object') {
+    return category.name;
+  }
+  return String(category || 'Tanaman');
+};
+
+const renderPrice = (price: any) => {
+  if (typeof price === 'number') {
+    return formatRupiah(price);
+  }
+  return String(price);
+};
+
 // Mock Categories
 const CATEGORIES = [
   { id: 1, name: 'Bibit Buah', icon: Sprout, gradient: 'from-[#e8f5e9] to-[#c8e6c9]' },
@@ -42,7 +72,7 @@ const CATEGORIES = [
 ];
 
 // Mock Products
-const BEST_SELLERS = [
+const MOCK_BEST_SELLERS = [
   {
     id: 101,
     name: 'Bibit Buah Mangga',
@@ -73,7 +103,7 @@ const BEST_SELLERS = [
 ];
 
 // Mock Activities
-const LATEST_ACTIVITIES = [
+const MOCK_LATEST_ACTIVITIES = [
   {
     id: 201,
     title: 'Sambutan Rektor di Botani Mart',
@@ -94,12 +124,57 @@ export default function HomePage() {
   const router = useRouter();
 
   // Stateful states for interactivity
-  const [wishlist, setWishlist] = useState<Record<number, boolean>>({});
+  const [wishlist, setWishlist] = useState<Record<string | number, boolean>>({});
   const [currentGalleryIndex, setCurrentGalleryIndex] = useState(0);
-  const [addingToCart, setAddingToCart] = useState<number | null>(null);
+  const [addingToCart, setAddingToCart] = useState<string | number | null>(null);
+
+  // Real Dynamic Backend States
+  const [bestSellers, setBestSellers] = useState<any[]>([]);
+  const [latestActivities, setLatestActivities] = useState<any[]>([]);
+  const [loadingProducts, setLoadingProducts] = useState(true);
+  const [loadingActivities, setLoadingActivities] = useState(true);
+
+  const fetchProducts = useCallback(async () => {
+    try {
+      const res = await fetch('/api/catalog?limit=3&sort=newest');
+      const data = await res.json();
+      if (data.success && data.data && data.data.data && data.data.data.length > 0) {
+        setBestSellers(data.data.data);
+      } else {
+        setBestSellers(MOCK_BEST_SELLERS);
+      }
+    } catch (err) {
+      console.error('Failed to fetch best sellers:', err);
+      setBestSellers(MOCK_BEST_SELLERS);
+    } finally {
+      setLoadingProducts(false);
+    }
+  }, []);
+
+  const fetchActivities = useCallback(async () => {
+    try {
+      const res = await fetch('/api/activities');
+      const data = await res.json();
+      if (data.success && data.data && data.data.data && data.data.data.length > 0) {
+        setLatestActivities(data.data.data.slice(0, 2));
+      } else {
+        setLatestActivities(MOCK_LATEST_ACTIVITIES);
+      }
+    } catch (err) {
+      console.error('Failed to fetch latest activities:', err);
+      setLatestActivities(MOCK_LATEST_ACTIVITIES);
+    } finally {
+      setLoadingActivities(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchProducts();
+    fetchActivities();
+  }, [fetchProducts, fetchActivities]);
 
   // Real add-to-cart via API
-  const addToCart = useCallback(async (productId: number, productName: string) => {
+  const addToCart = useCallback(async (productId: string | number, productName: string) => {
     setAddingToCart(productId);
     try {
       const res = await fetch('/api/cart', {
@@ -134,7 +209,7 @@ export default function HomePage() {
     setCurrentGalleryIndex((prev) => (prev - 1 + galleryItems.length) % galleryItems.length);
   };
 
-  const toggleWishlist = (id: number) => {
+  const toggleWishlist = (id: string | number) => {
     setWishlist(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
@@ -292,22 +367,15 @@ export default function HomePage() {
                 </div>
               </div>
 
-              <a
-                href="https://wa.me/6281110631132"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-start gap-4 hover:opacity-85 transition-opacity"
-              >
-                <div className="w-10 h-10 rounded-full bg-[#25d366]/10 flex items-center justify-center text-[#25d366] shrink-0">
-                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.455L0 24zm6.59-4.846c1.66.986 3.288 1.498 4.885 1.503 5.485.002 9.948-4.436 9.951-9.886.002-2.641-1.02-5.124-2.877-6.984C16.691 1.928 14.22 1.91 12.012 1.91 6.524 1.91 2.06 6.348 2.057 11.8.055 13.526.564 15.223 1.56 16.892l-.997 3.637 3.734-.969a9.7 9.7 0 001.35.59z" />
-                  </svg>
+              <div className="flex items-start gap-4">
+                <div className="w-10 h-10 rounded-full bg-brand-cream flex items-center justify-center text-brand-emerald shrink-0">
+                  <Phone className="w-5 h-5" />
                 </div>
                 <div>
-                  <h4 className="font-bold text-[#1e3329] text-sm">Hubungi Kami (WhatsApp)</h4>
-                  <p className="text-xs text-brand-sage font-medium mt-0.5">081110631132</p>
+                  <h4 className="font-bold text-[#1e3329] text-sm">Hubungi Kami</h4>
+                  <p className="text-xs text-brand-sage font-medium mt-0.5">+62 251-862-2000 (Toko Resmi)</p>
                 </div>
-              </a>
+              </div>
             </div>
           </div>
 
@@ -521,7 +589,7 @@ export default function HomePage() {
 
           {/* Grid of 3 Product Cards */}
           <div className="grid md:grid-cols-3 gap-8">
-            {BEST_SELLERS.map((product) => (
+            {bestSellers.map((product) => (
               <div
                 key={product.id}
                 className="bg-white rounded-3xl border border-[#e2ede7] overflow-hidden shadow-md hover:shadow-2xl transition-all duration-300 flex flex-col group relative"
@@ -539,40 +607,52 @@ export default function HomePage() {
                 </button>
 
                 {/* Product Image Placeholder Grid */}
-                <div className={`h-64 bg-gradient-to-br ${product.gradient} flex items-center justify-center relative select-none overflow-hidden border-b border-brand-cream`}>
-                  <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                  <div className="flex flex-col items-center space-y-2 z-10 text-brand-forest/70">
-                    <div className="w-12 h-12 rounded-full bg-white/60 flex items-center justify-center shadow-inner">
-                      <Leaf className="w-6 h-6 text-brand-emerald" />
+                <div className="h-64 relative select-none overflow-hidden border-b border-[#e2ede7] bg-brand-cream">
+                  {product.image_url ? (
+                    <NextImage
+                      src={product.image_url}
+                      alt={product.name}
+                      fill
+                      sizes="(max-w-7xl) 33vw, 100vw"
+                      className="object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                  ) : (
+                    <div className={`absolute inset-0 bg-gradient-to-br ${product.gradient || getCategoryGradient(getCategoryName(product.category))} flex items-center justify-center`}>
+                      <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                      <div className="flex flex-col items-center space-y-2 z-10 text-brand-forest/70">
+                        <div className="w-12 h-12 rounded-full bg-white/60 flex items-center justify-center shadow-inner">
+                          <Leaf className="w-6 h-6 text-brand-emerald" />
+                        </div>
+                        <span className="text-[10px] font-extrabold uppercase tracking-wider bg-brand-emerald/10 text-brand-emerald px-2 py-0.5 rounded border border-brand-emerald/5">
+                          {getCategoryName(product.category)}
+                        </span>
+                      </div>
                     </div>
-                    <span className="text-[10px] font-extrabold uppercase tracking-wider bg-brand-emerald/10 text-brand-emerald px-2 py-0.5 rounded border border-brand-emerald/5">
-                      {product.category}
-                    </span>
-                  </div>
+                  )}
                 </div>
 
                 {/* Details Section */}
                 <div className="p-6 flex-1 flex flex-col text-left space-y-3">
                   <div className="space-y-1">
                     <span className="text-[10px] font-bold text-brand-sage tracking-wider uppercase">
-                      {product.category}
+                      {getCategoryName(product.category)}
                     </span>
-                    <h3 className="font-heading font-extrabold text-lg text-brand-forest group-hover:text-brand-emerald transition-colors">
+                    <h3 className="font-heading font-extrabold text-lg text-brand-forest group-hover:text-brand-emerald transition-colors truncate">
                       {product.name}
                     </h3>
                   </div>
 
                   {/* Price */}
                   <div className="text-base font-bold text-brand-emerald">
-                    {product.price}
+                    {renderPrice(product.price)}
                   </div>
 
                   {/* Rating block */}
                   <div className="flex items-center gap-1.5 text-xs text-brand-sage font-semibold">
                     <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
-                    <span>{product.rating}</span>
+                    <span>{product.rating_avg !== undefined ? product.rating_avg : (product.rating || 0)}</span>
                     <span className="text-zinc-300 font-normal">|</span>
-                    <span>({product.reviews} ulasan)</span>
+                    <span>({product.rating_count !== undefined ? product.rating_count : (product.reviews || 0)} ulasan)</span>
                   </div>
 
                   {/* Actions Bar */}
@@ -580,7 +660,7 @@ export default function HomePage() {
                     <button
                       onClick={() => addToCart(product.id, product.name)}
                       disabled={addingToCart === product.id}
-                      className="w-12 h-12 rounded-2xl border border-[#e2ede7] hover:bg-brand-cream text-brand-emerald flex items-center justify-center transition-colors shrink-0 cursor-pointer"
+                      className="w-12 h-12 rounded-2xl border border-[#e2ede7] hover:bg-brand-cream text-brand-emerald flex items-center justify-center transition-colors shrink-0 cursor-pointer disabled:opacity-50"
                       aria-label="Tambahkan ke Keranjang"
                     >
                       <Plus className="w-5 h-5" />
@@ -603,7 +683,7 @@ export default function HomePage() {
                         finally { setAddingToCart(null); }
                       }}
                       disabled={addingToCart === product.id}
-                      className="flex-1 py-3 rounded-2xl bg-brand-forest hover:bg-brand-emerald text-white text-xs font-bold tracking-wider uppercase transition-all duration-300 cursor-pointer text-center"
+                      className="flex-1 py-3 rounded-2xl bg-brand-forest hover:bg-brand-emerald text-white text-xs font-bold tracking-wider uppercase transition-all duration-300 cursor-pointer text-center disabled:opacity-50"
                     >
                       Beli Sekarang
                     </button>
@@ -646,7 +726,7 @@ export default function HomePage() {
 
           {/* 2 News Cards */}
           <div className="grid md:grid-cols-2 gap-8">
-            {LATEST_ACTIVITIES.map((activity) => (
+            {latestActivities.map((activity) => (
               <div
                 key={activity.id}
                 className="bg-white/5 rounded-3xl border border-white/10 hover:border-white/20 p-6 sm:p-8 text-left hover:bg-white/[0.08] transition-all duration-300 flex flex-col sm:flex-row gap-6"
@@ -654,8 +734,20 @@ export default function HomePage() {
 
                 {/* News Image/Banner Graphic Placeholder */}
                 <div className="w-full sm:w-32 h-32 rounded-2xl bg-white/10 border border-white/10 flex items-center justify-center shrink-0 overflow-hidden relative select-none">
-                  <div className="absolute inset-0 bg-gradient-to-br from-brand-lime/20 to-transparent" />
-                  <Leaf className="w-7 h-7 text-brand-lime opacity-75" />
+                  {activity.image_url || activity.image ? (
+                    <NextImage
+                      src={activity.image_url || activity.image}
+                      alt={activity.title}
+                      fill
+                      sizes="(max-w-7xl) 33vw, 100vw"
+                      className="object-cover"
+                    />
+                  ) : (
+                    <>
+                      <div className="absolute inset-0 bg-gradient-to-br from-brand-lime/20 to-transparent" />
+                      <Leaf className="w-7 h-7 text-brand-lime opacity-75" />
+                    </>
+                  )}
                 </div>
 
                 {/* Content info */}
@@ -663,26 +755,26 @@ export default function HomePage() {
                   <div className="space-y-1">
                     <div className="flex items-center gap-1.5 text-xs text-brand-lime font-bold">
                       <Calendar className="w-3.5 h-3.5" />
-                      <span>{activity.date}</span>
+                      <span>{activity.created_at ? new Date(activity.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'numeric', year: 'numeric' }) : activity.date}</span>
                       <span>•</span>
-                      <span>{activity.location}</span>
+                      <span>{activity.location || 'Bogor, Dramaga'}</span>
                     </div>
 
-                    <h3 className="font-heading font-extrabold text-lg text-white">
+                    <h3 className="font-heading font-extrabold text-lg text-white line-clamp-2">
                       {activity.title}
                     </h3>
                   </div>
 
-                  <p className="text-xs text-white/70 leading-relaxed font-medium">
+                  <p className="text-xs text-white/70 leading-relaxed font-medium line-clamp-2">
                     {activity.summary}
                   </p>
 
-                  <button
-                    onClick={() => alert(`Membuka artikel: ${activity.title}`)}
+                  <Link
+                    href={`/kegiatan?id=${activity.id}`}
                     className="pt-2 text-xs font-bold text-brand-lime hover:text-white flex items-center gap-1 mt-auto hover:underline text-left cursor-pointer"
                   >
                     Baca selengkapnya <ArrowRight className="w-3.5 h-3.5" />
-                  </button>
+                  </Link>
                 </div>
 
               </div>
@@ -704,8 +796,8 @@ export default function HomePage() {
               Kunjungi Toko Kami!
             </h2>
             <p className="text-brand-sage text-sm sm:text-base leading-relaxed font-semibold">
-              Galeri offline kami beroperasi setiap hari dari pukul 08.00 s.d 17.00 WIB. Silakan kunjungi alamat kami langsung untuk melihat ratusa
-              n bibit unggulan segar di Dramaga, Bogor.
+              Galeri offline kami beroperasi setiap hari dari pukul 08.00 s.d 17.00 WIB. Silakan kunjungi alamat kami langsung untuk melihat ratusan
+              n bibit unggul segar di Dramaga, Bogor.
             </p>
             <div className="pt-2">
               <a

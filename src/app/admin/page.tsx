@@ -70,7 +70,8 @@ export default function AdminDashboardPage() {
     stock: '',
     description: '',
     image: '',
-    pickupMethods: ['Kirim', 'Ambil Sendiri'] as string[]
+    pickupMethods: ['Kirim', 'Ambil Sendiri'] as string[],
+    tags: ''
   });
 
   // Product Sorting state
@@ -268,7 +269,10 @@ export default function AdminDashboardPage() {
       description: productForm.description,
       image_url: productForm.image || null,
       pickup_methods: productForm.pickupMethods,
-      unit: 'buah'
+      unit: 'buah',
+      tags: productForm.tags
+        ? productForm.tags.split(',').map((t: string) => t.trim()).filter((t: string) => t !== '')
+        : []
     };
 
     try {
@@ -301,7 +305,8 @@ export default function AdminDashboardPage() {
           stock: '',
           description: '',
           image: '',
-          pickupMethods: ['Kirim', 'Ambil Sendiri']
+          pickupMethods: ['Kirim', 'Ambil Sendiri'],
+          tags: ''
         });
         fetchAllData();
       } else {
@@ -323,7 +328,8 @@ export default function AdminDashboardPage() {
       stock: String(product.stock),
       description: product.description || '',
       image: product.image_url || '',
-      pickupMethods: product.pickup_methods || ['Kirim', 'Ambil Sendiri']
+      pickupMethods: product.pickup_methods || ['Kirim', 'Ambil Sendiri'],
+      tags: product.tags ? product.tags.join(', ') : ''
     });
     setIsProductModalOpen(true);
   };
@@ -982,7 +988,8 @@ export default function AdminDashboardPage() {
                       stock: '',
                       description: '',
                       image: '',
-                      pickupMethods: ['Kirim', 'Ambil Sendiri']
+                      pickupMethods: ['Kirim', 'Ambil Sendiri'],
+                      tags: ''
                     });
                     setIsProductModalOpen(true);
                   }}
@@ -1424,6 +1431,21 @@ export default function AdminDashboardPage() {
                   onChange={(e) => setProductForm(prev => ({ ...prev, description: e.target.value }))}
                   className="w-full px-5 py-3 text-sm border border-zinc-200 rounded-3xl bg-white text-brand-forest focus:outline-none focus:ring-2 focus:ring-brand-emerald shadow-inner"
                 />
+              </div>
+
+              {/* Tags / Spesifikasi */}
+              <div className="flex flex-col">
+                <label className="text-sm font-semibold text-[#1e3329] mb-1">Tags / Spesifikasi Produk (Pisahkan dengan koma)</label>
+                <input
+                  type="text"
+                  placeholder="Contoh: Tinggi Tanaman: ± 50cm, Metode Perbanyakan: Okulasi"
+                  value={productForm.tags}
+                  onChange={(e) => setProductForm(prev => ({ ...prev, tags: e.target.value }))}
+                  className="w-full px-5 py-3 text-sm border border-zinc-200 rounded-full bg-white text-brand-forest focus:outline-none focus:ring-2 focus:ring-brand-emerald shadow-inner"
+                />
+                <span className="text-[10px] text-brand-sage mt-1 pl-2">
+                  Masukkan spesifikasi produk dipisahkan oleh tanda koma. Tags ini akan otomatis muncul sebagai list "Spesifikasi & Kelebihan" di halaman detail produk.
+                </span>
               </div>
 
               {/* Actions Footer row */}
