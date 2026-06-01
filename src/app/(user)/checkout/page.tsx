@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   ArrowLeft, ShoppingBag, Loader2, AlertCircle, CheckCircle2,
-  CreditCard, Leaf, MapPin, FileText
+  CreditCard, Leaf, MapPin, FileText, X, HelpCircle
 } from 'lucide-react';
 import Link from 'next/link';
 import NextImage from 'next/image';
@@ -58,6 +58,10 @@ export default function CheckoutPage() {
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState('');
   const [paymentSuccess, setPaymentSuccess] = useState(false);
+  const [showDemoModal, setShowDemoModal] = useState(false);
+
+  const isDemo = !process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY || 
+    process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY === 'your_midtrans_client_key';
 
   const fetchCart = useCallback(async () => {
     try {
@@ -99,6 +103,11 @@ export default function CheckoutPage() {
   }, []);
 
   const handleCheckout = async () => {
+    if (isDemo) {
+      setShowDemoModal(true);
+      return;
+    }
+
     setProcessing(true);
     setError('');
 
@@ -143,6 +152,34 @@ export default function CheckoutPage() {
         setError('Midtrans belum dimuat. Silakan refresh halaman.');
         setProcessing(false);
       }
+    } catch {
+      setError('Terjadi kesalahan jaringan.');
+      setProcessing(false);
+    }
+  };
+
+  const handleDemoPayment = async () => {
+    setProcessing(true);
+    setError('');
+    setShowDemoModal(false);
+
+    try {
+      const res = await fetch('/api/orders/checkout-demo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notes }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        setError(data.error || 'Gagal memproses demo checkout.');
+        setProcessing(false);
+        return;
+      }
+
+      setPaymentSuccess(true);
+      setTimeout(() => router.push('/akun'), 2000);
     } catch {
       setError('Terjadi kesalahan jaringan.');
       setProcessing(false);
@@ -339,6 +376,72 @@ export default function CheckoutPage() {
       </main>
 
       <Footer />
+
+      {/* Demo Checkout Modal */}
+      {showDemoModal && cart && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-brand-forest/40 backdrop-blur-md transition-all duration-300 animate-fade-in">
+          <div className="bg-white/95 rounded-3xl border border-[#e2ede7] p-6 sm:p-8 max-w-md w-full shadow-2xl relative animate-scale-in text-brand-forest">
+            
+            {/* Close Button */}
+            <button 
+              onClick={() => setShowDemoModal(false)}
+              className="absolute top-4 right-4 p-1.5 rounded-full hover:bg-brand-cream/80 text-brand-sage hover:text-brand-forest transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {/* Header info */}
+            <div className="text-center mb-6">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-semibold uppercase tracking-wider mb-3">
+                <Leaf className="w-3.5 h-3.5" />
+                Mode Demo
+              </span>
+              <h3 className="text-xl font-bold font-heading">Konfirmasi Pembayaran</h3>
+              <p className="text-sm text-brand-sage mt-1">Simulasi penyelesaian transaksi</p>
+            </div>
+
+            {/* Payment Summary Box */}
+            <div className="bg-brand-cream/50 rounded-2xl p-5 border border-[#e2ede7] mb-6">
+              <div className="flex justify-between items-center text-sm border-b border-[#e2ede7]/60 pb-3 mb-3">
+                <span className="text-brand-sage">Total Item</span>
+                <span className="font-semibold">{cart.totalItems} Tanaman</span>
+              </div>
+              <div className="text-center">
+                <span className="text-xs text-brand-sage uppercase tracking-wider block font-medium">Total Tagihan</span>
+                <span className="text-3xl font-extrabold text-brand-emerald tracking-tight mt-1 block">
+                  {formatRupiah(cart.totalPrice)}
+                </span>
+              </div>
+            </div>
+
+            {/* Demo Notice */}
+            <div className="bg-amber-50/60 rounded-2xl p-4 border border-amber-100/80 mb-6 flex gap-3 text-xs text-amber-800 leading-relaxed">
+              <HelpCircle className="w-4 h-4 shrink-0 text-amber-600 mt-0.5" />
+              <div>
+                <strong className="font-semibold block mb-0.5">Informasi Checkout Demo</strong>
+                Midtrans belum dikonfigurasi. Klik tombol <strong>Bayar Sekarang</strong> di bawah untuk langsung menandai pesanan sebagai <strong>Lunas (Paid)</strong> dan mengosongkan keranjang belanja Anda untuk keperluan demo/testing.
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={handleDemoPayment}
+                className="w-full flex items-center justify-center gap-2 py-4 rounded-full bg-brand-forest hover:bg-brand-emerald text-white font-semibold shadow-md hover:shadow-lg transition-all"
+              >
+                <CreditCard className="w-4 h-4" />
+                Bayar Sekarang (Demo)
+              </button>
+              <button
+                onClick={() => setShowDemoModal(false)}
+                className="w-full py-3 rounded-full border border-brand-sage/20 text-brand-sage hover:text-brand-forest font-medium text-sm transition-all"
+              >
+                Batal
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
