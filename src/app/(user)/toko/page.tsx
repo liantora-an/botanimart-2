@@ -858,12 +858,14 @@ function TokoKatalogPageContent() {
                     <span className="text-xs font-extrabold text-brand-sage uppercase tracking-widest w-24">Pengambilan</span>
 
                     <div className="flex flex-wrap gap-2 text-xs font-bold">
-                      <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-brand-cream border border-[#e2ede7] text-brand-forest">
-                        🚚 Dikirim (Tiba dalam 2-3 jam)
-                      </span>
-                      <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-brand-cream border border-[#e2ede7] text-brand-forest">
-                        🏪 Ambil Langsung
-                      </span>
+                      {selectedProduct.features && selectedProduct.features.map((method: string, index: number) => {
+                        const isDelivery = method.toLowerCase().includes('kirim');
+                        return (
+                          <span key={index} className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-brand-cream border border-[#e2ede7] text-brand-forest">
+                            {isDelivery ? '🚚 Kirim' : '🏪 Ambil Langsung'}
+                          </span>
+                        );
+                      })}
                     </div>
                   </div>
 
