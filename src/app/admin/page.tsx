@@ -27,7 +27,9 @@ import {
   ArrowUpDown,
   Image as ImageIcon,
   Loader2,
-  ShieldAlert
+  ShieldAlert,
+  ClipboardList,
+  Eye
 } from 'lucide-react';
 import Link from 'next/link';
 import NextImage from 'next/image';
@@ -38,7 +40,7 @@ export default function AdminDashboardPage() {
   const router = useRouter();
 
   // Navigation Menu state
-  const [activeMenu, setActiveMenu] = useState<'dashboard' | 'produk' | 'kegiatan'>('dashboard');
+  const [activeMenu, setActiveMenu] = useState<'dashboard' | 'produk' | 'kegiatan' | 'pesanan'>('dashboard');
 
   // Auth & Protection States
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -56,6 +58,9 @@ export default function AdminDashboardPage() {
   // Search states
   const [productSearch, setProductSearch] = useState('');
   const [activitySearch, setActivitySearch] = useState('');
+  const [orderSearch, setOrderSearch] = useState('');
+  const [selectedStatusFilter, setSelectedStatusFilter] = useState('all');
+  const [selectedOrderDetails, setSelectedOrderDetails] = useState<any | null>(null);
 
   // Uploading image state indicator
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -219,6 +224,48 @@ export default function AdminDashboardPage() {
       a.category.toLowerCase().includes(activitySearch.toLowerCase())
     );
   }, [activities, activitySearch]);
+
+  // Order counts for filters
+  const orderCounts = useMemo(() => {
+    return {
+      all: orders.length,
+      pending: orders.filter(o => o.status === 'pending').length,
+      paid: orders.filter(o => o.status === 'paid').length,
+      processing: orders.filter(o => o.status === 'processing').length,
+      shipped: orders.filter(o => o.status === 'shipped').length,
+      completed: orders.filter(o => o.status === 'completed').length,
+      canceled: orders.filter(o => ['canceled', 'expired'].includes(o.status)).length,
+    };
+  }, [orders]);
+
+  // Order Search and Status Filter
+  const filteredOrders = useMemo(() => {
+    let result = orders;
+
+    // Apply status filter
+    if (selectedStatusFilter !== 'all') {
+      if (selectedStatusFilter === 'canceled') {
+        result = result.filter(o => ['canceled', 'expired'].includes(o.status));
+      } else {
+        result = result.filter(o => o.status === selectedStatusFilter);
+      }
+    }
+
+    // Apply search
+    if (orderSearch.trim() !== '') {
+      const query = orderSearch.toLowerCase();
+      result = result.filter(o => {
+        const orderId = (o.midtrans_order_id || o.id).toLowerCase();
+        const customerName = (o.user?.full_name || o.user?.email || 'Guest').toLowerCase();
+        const itemsStr = o.order_items
+          ? o.order_items.map((i: any) => i.plant_name.toLowerCase()).join(' ')
+          : '';
+        return orderId.includes(query) || customerName.includes(query) || itemsStr.includes(query);
+      });
+    }
+
+    return result;
+  }, [orders, selectedStatusFilter, orderSearch]);
 
   // Handle Dynamic Upload for Product Images
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -661,6 +708,18 @@ export default function AdminDashboardPage() {
             >
               <CalendarIcon className="w-5 h-5 shrink-0" />
               <span>Kelola Kegiatan</span>
+            </button>
+
+            {/* Kelola Pesanan Sidebar Button */}
+            <button
+              onClick={() => setActiveMenu('pesanan')}
+              className={`w-full flex items-center gap-3.5 px-4.5 py-3.5 rounded-2xl text-sm font-heading font-extrabold tracking-wide uppercase transition-all duration-300 shrink-0 cursor-pointer ${activeMenu === 'pesanan'
+                ? 'bg-[#345947] text-brand-lime shadow-inner'
+                : 'text-white/70 hover:text-white hover:bg-white/5'
+                }`}
+            >
+              <ClipboardList className="w-5 h-5 shrink-0" />
+              <span>Kelola Pesanan</span>
             </button>
 
           </div>
@@ -1261,6 +1320,180 @@ export default function AdminDashboardPage() {
             </div>
           )}
 
+          {/* MENU 4: KELOLA PESANAN */}
+          {activeMenu === 'pesanan' && (
+            <div className="space-y-8 text-left animate-fade-in-up">
+
+              {/* Title Section */}
+              <div className="border-b border-[#e2ede7] pb-6 space-y-1">
+                <h1 className="font-heading font-black text-3xl text-brand-forest">
+                  Kelola Pesanan
+                </h1>
+                <p className="text-brand-sage text-sm font-semibold">
+                  Manajemen transaksi, status pembayaran, dan pengiriman produk tanaman
+                </p>
+              </div>
+
+              {/* Status Pill Tabs filter */}
+              <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin select-none">
+                {[
+                  { id: 'all', label: 'Semua', count: orderCounts.all, color: 'border-zinc-200 hover:bg-zinc-50 text-brand-forest' },
+                  { id: 'pending', label: 'Pending', count: orderCounts.pending, color: 'border-amber-200 text-amber-700 bg-amber-50/50 hover:bg-amber-50' },
+                  { id: 'paid', label: 'Lunas', count: orderCounts.paid, color: 'border-emerald-200 text-emerald-700 bg-emerald-50/50 hover:bg-emerald-50' },
+                  { id: 'processing', label: 'Diproses', count: orderCounts.processing, color: 'border-blue-200 text-blue-700 bg-blue-50/50 hover:bg-blue-50' },
+                  { id: 'shipped', label: 'Dikirim', count: orderCounts.shipped, color: 'border-indigo-200 text-indigo-700 bg-indigo-50/50 hover:bg-indigo-50' },
+                  { id: 'completed', label: 'Selesai', count: orderCounts.completed, color: 'border-[#b8d5c5] text-brand-emerald bg-brand-cream/35 hover:bg-brand-cream/60' },
+                  { id: 'canceled', label: 'Batal', count: orderCounts.canceled, color: 'border-rose-200 text-rose-700 bg-rose-50/50 hover:bg-rose-50' },
+                ].map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setSelectedStatusFilter(tab.id)}
+                    className={`flex items-center gap-2 px-5 py-2.5 rounded-full border text-xs font-bold transition-all shrink-0 cursor-pointer ${
+                      selectedStatusFilter === tab.id
+                        ? 'bg-brand-forest text-white border-brand-forest shadow-md scale-102'
+                        : tab.color
+                    }`}
+                  >
+                    <span>{tab.label}</span>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full ${
+                      selectedStatusFilter === tab.id
+                        ? 'bg-white/25 text-white'
+                        : 'bg-brand-cream/80 text-brand-sage border border-[#e2ede7]'
+                    }`}>
+                      {tab.count}
+                    </span>
+                  </button>
+                ))}
+              </div>
+
+              {/* Search filter bar */}
+              <div className="max-w-md">
+                <div className="flex items-center bg-white border border-[#e2ede7] rounded-full py-3 px-5 shadow-sm focus-within:border-brand-emerald transition-colors group">
+                  <input
+                    type="text"
+                    placeholder="Cari ID pesanan, nama kustomer, atau tanaman..."
+                    value={orderSearch}
+                    onChange={(e) => setOrderSearch(e.target.value)}
+                    className="w-full bg-transparent text-sm font-semibold focus:outline-none text-brand-forest placeholder-brand-sage/60"
+                  />
+                  <Search className="w-4.5 h-4.5 text-brand-sage group-focus-within:text-brand-emerald shrink-0" />
+                </div>
+              </div>
+
+              {/* Data Table */}
+              <div className="bg-white rounded-3xl border border-[#e2ede7] shadow-sm overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse">
+                    <thead>
+                      <tr className="border-b border-brand-cream bg-brand-cream/10 text-left text-xs font-bold text-brand-sage uppercase tracking-wider select-none">
+                        <th className="py-4.5 pl-6">ID Pesanan</th>
+                        <th className="py-4.5">Kustomer</th>
+                        <th className="py-4.5">Rincian Belanja</th>
+                        <th className="py-4.5">Tanggal</th>
+                        <th className="py-4.5">Total Bayar</th>
+                        <th className="py-4.5 text-center">Status</th>
+                        <th className="py-4.5 text-center pr-6 w-24">Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-brand-cream/50 text-sm font-semibold text-brand-forest">
+                      {filteredOrders.map((order) => {
+                        const customerName = order.user?.full_name || order.user?.email || 'Guest';
+                        const itemsSummary = order.order_items
+                          ? order.order_items.map((i: any) => `${i.plant_name} (${i.quantity})`).join(', ')
+                          : 'Tanpa Item';
+
+                        return (
+                          <tr key={order.id} className="hover:bg-brand-cream/10 transition-colors">
+                            
+                            {/* ID Pesanan */}
+                            <td className="py-4.5 pl-6 font-heading font-black text-brand-emerald text-xs tracking-wide">
+                              {order.midtrans_order_id || `BM-${order.id.slice(0, 8).toUpperCase()}`}
+                            </td>
+
+                            {/* Customer Profile */}
+                            <td className="py-4.5">
+                              <div className="flex flex-col text-left">
+                                <span className="font-bold text-[#1e3329] text-sm">{customerName}</span>
+                                <span className="text-[10px] text-brand-sage font-medium">{order.user?.email || '-'}</span>
+                              </div>
+                            </td>
+
+                            {/* Ordered Items Summary */}
+                            <td className="py-4.5 max-w-[200px] truncate" title={itemsSummary}>
+                              <span className="text-xs text-brand-sage font-medium leading-relaxed">
+                                {itemsSummary}
+                              </span>
+                            </td>
+
+                            {/* Date */}
+                            <td className="py-4.5 text-xs text-brand-sage font-medium">
+                              {new Date(order.created_at).toLocaleDateString('id-ID', {
+                                day: 'numeric',
+                                month: 'short',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </td>
+
+                            {/* Total Amount */}
+                            <td className="py-4.5 font-bold text-sm">
+                              Rp {order.total_amount.toLocaleString('id-ID')}
+                            </td>
+
+                            {/* Status Change interactive dropdown */}
+                            <td className="py-4.5 text-center">
+                              <select
+                                value={order.status}
+                                onChange={(e) => handleUpdateOrderStatus(order.id, e.target.value)}
+                                className={`text-[10px] font-bold border rounded-full px-3 py-1.5 focus:outline-none cursor-pointer tracking-wider uppercase transition-all ${
+                                  order.status === 'completed'
+                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                    : order.status === 'canceled' || order.status === 'expired'
+                                      ? 'bg-rose-50 text-rose-700 border-rose-200'
+                                      : order.status === 'paid'
+                                        ? 'bg-emerald-600 text-white border-emerald-700 shadow-sm'
+                                        : 'bg-amber-50 text-amber-700 border-amber-200'
+                                }`}
+                              >
+                                <option value="pending">Pending</option>
+                                <option value="paid">Paid (Lunas)</option>
+                                <option value="processing">Processing</option>
+                                <option value="shipped">Shipped</option>
+                                <option value="completed">Completed</option>
+                                <option value="canceled">Canceled</option>
+                                <option value="expired">Expired</option>
+                              </select>
+                            </td>
+
+                            {/* Action Button - view details drawer */}
+                            <td className="py-4.5 text-center pr-6">
+                              <button
+                                onClick={() => setSelectedOrderDetails(order)}
+                                className="p-2.5 rounded-xl border border-zinc-200 hover:bg-brand-cream text-brand-sage hover:text-brand-emerald transition-all cursor-pointer"
+                                title="Lihat Rincian Pesanan"
+                              >
+                                <Eye className="w-4 h-4" />
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                      {filteredOrders.length === 0 && (
+                        <tr>
+                          <td colSpan={7} className="py-12 text-center text-brand-sage font-medium">
+                            Tidak ada data transaksi ditemukan.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+            </div>
+          )}
+
         </main>
       </div>
 
@@ -1594,6 +1827,181 @@ export default function AdminDashboardPage() {
               </div>
 
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL WINDOW 3: ORDER DETAIL DRAWER MODAL (FROSTED GLASSMORPHISM) */}
+      {selectedOrderDetails && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-md bg-black/40 animate-fade-in text-brand-forest">
+          <div className="bg-white/95 rounded-[36px] border border-white/20 shadow-2xl w-full max-w-2xl overflow-hidden relative animate-scale-up flex flex-col max-h-[90vh]">
+            
+            {/* Modal Header */}
+            <div className="bg-brand-cream border-b border-[#e2ede7] px-8 py-5 flex items-center justify-between shrink-0">
+              <div className="text-left">
+                <h3 className="font-heading font-extrabold text-lg text-[#1e3329]">
+                  Detail Rincian Pesanan
+                </h3>
+                <p className="text-xs text-brand-sage font-medium mt-0.5">
+                  ID: {selectedOrderDetails.midtrans_order_id || selectedOrderDetails.id}
+                </p>
+              </div>
+              <button
+                onClick={() => setSelectedOrderDetails(null)}
+                className="p-1.5 rounded-full hover:bg-brand-lime/20 text-brand-sage hover:text-brand-forest transition-colors cursor-pointer"
+                aria-label="Tutup"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Body (Scrollable content) */}
+            <div className="p-8 space-y-6 overflow-y-auto text-left flex-1">
+              
+              {/* Order Status & Date Info Grid */}
+              <div className="grid sm:grid-cols-2 gap-6 bg-brand-cream/40 rounded-2xl p-5 border border-[#e2ede7]/60">
+                <div className="space-y-1">
+                  <span className="text-[10px] text-brand-sage uppercase font-bold tracking-wider block">Waktu Transaksi</span>
+                  <span className="text-sm font-semibold block">
+                    {new Date(selectedOrderDetails.created_at).toLocaleString('id-ID', {
+                      weekday: 'long',
+                      day: 'numeric',
+                      month: 'long',
+                      year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </span>
+                </div>
+                <div className="space-y-1 sm:text-right">
+                  <span className="text-[10px] text-brand-sage uppercase font-bold tracking-wider block">Status Saat Ini</span>
+                  <span className={`inline-flex items-center justify-center px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border mt-1 ${
+                    selectedOrderDetails.status === 'completed'
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
+                      : selectedOrderDetails.status === 'canceled' || selectedOrderDetails.status === 'expired'
+                        ? 'bg-rose-50 text-rose-700 border-rose-100'
+                        : selectedOrderDetails.status === 'paid'
+                          ? 'bg-emerald-600 text-white border-emerald-700'
+                          : 'bg-amber-50 text-amber-700 border-amber-100'
+                  }`}>
+                    {selectedOrderDetails.status}
+                  </span>
+                </div>
+              </div>
+
+              {/* Customer Profile & Info */}
+              <div className="space-y-3.5">
+                <h4 className="font-heading font-extrabold text-sm text-[#1e3329] uppercase tracking-wider border-b border-[#e2ede7] pb-1.5 flex items-center gap-2">
+                  <User className="w-4 h-4 text-brand-emerald" />
+                  Informasi Pelanggan & Pengiriman
+                </h4>
+                <div className="grid sm:grid-cols-2 gap-4 text-xs font-semibold leading-relaxed">
+                  <div>
+                    <span className="text-brand-sage font-medium block">Nama Penerima:</span>
+                    <span>{selectedOrderDetails.user?.full_name || 'Guest'}</span>
+                  </div>
+                  <div>
+                    <span className="text-brand-sage font-medium block">Email:</span>
+                    <span>{selectedOrderDetails.user?.email || '-'}</span>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <span className="text-brand-sage font-medium block">Metode Pengambilan:</span>
+                    <span className="inline-block text-[10px] font-bold uppercase tracking-wider text-[#223e30] bg-[#eaf4ee] px-2.5 py-0.5 rounded border border-[#daebd3] mt-0.5">
+                      {selectedOrderDetails.notes && selectedOrderDetails.notes.toLowerCase().includes('ambil') ? 'Ambil Sendiri di Toko' : 'Kirim / Delivery'}
+                    </span>
+                  </div>
+                  {selectedOrderDetails.notes && (
+                    <div className="sm:col-span-2 bg-brand-cream/30 border border-[#e2ede7]/40 rounded-xl p-3.5 mt-1.5">
+                      <span className="text-brand-sage font-medium block mb-1">Catatan Tambahan:</span>
+                      <p className="text-xs text-brand-forest italic bg-white/70 rounded-lg p-2.5 border border-[#e2ede7]/30">
+                        "{selectedOrderDetails.notes}"
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Ordered Plants Checklist Section */}
+              <div className="space-y-4">
+                <h4 className="font-heading font-extrabold text-sm text-[#1e3329] uppercase tracking-wider border-b border-[#e2ede7] pb-1.5 flex items-center gap-2">
+                  <ShoppingBag className="w-4 h-4 text-brand-emerald" />
+                  Daftar Tanaman yang Dipesan
+                </h4>
+                <div className="space-y-3.5">
+                  {selectedOrderDetails.order_items?.map((item: any) => (
+                    <div key={item.id} className="flex gap-4 pb-3.5 border-b border-[#e2ede7]/50 last:border-0 last:pb-0 items-center">
+                      <div className="w-14 h-14 rounded-xl bg-brand-cream border border-[#e2ede7] flex-shrink-0 overflow-hidden flex items-center justify-center relative">
+                        {item.plant?.image_url ? (
+                          <img src={item.plant.image_url} alt={item.plant_name} className="w-full h-full object-cover" />
+                        ) : (
+                          <ImageIcon className="w-5 h-5 text-brand-sage" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0 text-xs font-semibold">
+                        <p className="font-bold text-sm text-[#1e3329] truncate">{item.plant_name}</p>
+                        <p className="text-brand-sage mt-0.5">
+                          Rp {item.price_at_purchase.toLocaleString('id-ID')} × {item.quantity}
+                        </p>
+                      </div>
+                      <div className="text-right text-xs font-bold text-[#1e3329]">
+                        Rp {(item.price_at_purchase * item.quantity).toLocaleString('id-ID')}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Grand Total */}
+              <div className="pt-4 border-t border-[#e2ede7] flex justify-between items-center">
+                <span className="font-heading font-extrabold text-sm uppercase tracking-wider text-brand-sage">Total Tagihan</span>
+                <span className="text-2xl font-black text-brand-emerald">
+                  Rp {selectedOrderDetails.total_amount.toLocaleString('id-ID')}
+                </span>
+              </div>
+
+            </div>
+
+            {/* Modal Actions Footer */}
+            <div className="bg-brand-cream border-t border-[#e2ede7] px-8 py-5 flex flex-col sm:flex-row gap-4 items-center justify-between shrink-0">
+              
+              {/* Quick Status Update inside the Modal */}
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <span className="text-xs font-bold text-brand-sage">Ubah Status:</span>
+                <select
+                  value={selectedOrderDetails.status}
+                  onChange={(e) => {
+                    handleUpdateOrderStatus(selectedOrderDetails.id, e.target.value);
+                    setSelectedOrderDetails((prev: any) => prev ? { ...prev, status: e.target.value } : null);
+                  }}
+                  className={`text-[10px] font-bold border rounded-full px-3 py-1.5 focus:outline-none cursor-pointer tracking-wider uppercase bg-white ${
+                    selectedOrderDetails.status === 'completed'
+                      ? 'text-emerald-700 border-emerald-200'
+                      : selectedOrderDetails.status === 'canceled' || selectedOrderDetails.status === 'expired'
+                        ? 'text-rose-700 border-rose-200'
+                        : selectedOrderDetails.status === 'paid'
+                          ? 'text-emerald-600 border-emerald-500'
+                          : 'text-amber-700 border-amber-200'
+                  }`}
+                >
+                  <option value="pending">Pending</option>
+                  <option value="paid">Paid (Lunas)</option>
+                  <option value="processing">Processing</option>
+                  <option value="shipped">Shipped</option>
+                  <option value="completed">Completed</option>
+                  <option value="canceled">Canceled</option>
+                  <option value="expired">Expired</option>
+                </select>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setSelectedOrderDetails(null)}
+                className="w-full sm:w-auto px-8 py-2.5 rounded-full bg-brand-forest hover:bg-brand-emerald text-white text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer shadow-sm text-center"
+              >
+                Tutup Detail
+              </button>
+            </div>
+
           </div>
         </div>
       )}
