@@ -133,7 +133,7 @@ export default function AdminDashboardPage() {
             categoryName: p.category?.name || 'Tanpa Kategori',
             image: p.image_url || '',
             pickupMethods: p.pickup_methods || ['Kirim', 'Ambil Sendiri'],
-            rating: p.rating_avg || 4.8
+            rating: p.rating_avg !== undefined && p.rating_avg !== null ? Number(p.rating_avg) : 0
           }));
           setProducts(mappedProds);
         }
@@ -1206,8 +1206,8 @@ export default function AdminDashboardPage() {
 
                           <td className="py-4.5">
                             <div className="flex items-center gap-1 text-xs text-brand-sage font-bold">
-                              <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                              <span>{product.rating}</span>
+                              <Star className={`w-3.5 h-3.5 ${product.rating > 0 ? 'fill-amber-400 text-amber-400' : 'text-zinc-300'}`} />
+                              <span>{product.rating > 0 ? Number(product.rating).toFixed(1) : '0'}</span>
                             </div>
                           </td>
 

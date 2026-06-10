@@ -11,7 +11,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Star,
-  Heart,
   ArrowRight,
   ExternalLink,
   Calendar,
@@ -125,7 +124,6 @@ export default function HomePage() {
   const router = useRouter();
 
   // Stateful states for interactivity
-  const [wishlist, setWishlist] = useState<Record<string | number, boolean>>({});
   const [currentGalleryIndex, setCurrentGalleryIndex] = useState(0);
   const [addingToCart, setAddingToCart] = useState<string | number | null>(null);
 
@@ -220,10 +218,6 @@ export default function HomePage() {
 
   const handlePrevGallery = () => {
     setCurrentGalleryIndex((prev) => (prev - 1 + galleryItems.length) % galleryItems.length);
-  };
-
-  const toggleWishlist = (id: string | number) => {
-    setWishlist(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
   return (
@@ -611,16 +605,7 @@ export default function HomePage() {
                 className="bg-white rounded-3xl border border-[#e2ede7] overflow-hidden shadow-md hover:shadow-2xl transition-all duration-300 flex flex-col group relative"
               >
 
-                {/* Wishlist Icon */}
-                <button
-                  onClick={() => toggleWishlist(product.id)}
-                  className="absolute top-4 right-4 z-20 w-9 h-9 rounded-full bg-white/80 hover:bg-white shadow-sm flex items-center justify-center text-zinc-400 hover:text-red-500 transition-colors"
-                  aria-label="Tambah ke Favorit"
-                >
-                  <Heart
-                    className={`w-4.5 h-4.5 transition-all ${wishlist[product.id] ? 'fill-red-500 text-red-500 scale-110' : 'text-zinc-400'}`}
-                  />
-                </button>
+
 
                 {/* Product Image Placeholder Grid */}
                 <div className="h-64 relative select-none overflow-hidden border-b border-[#e2ede7] bg-brand-cream">

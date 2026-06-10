@@ -4,7 +4,6 @@ import React, { useState, useMemo, useEffect } from 'react';
 import {
   Search,
   ShoppingBag,
-  Heart,
   ArrowLeft,
   Calendar,
   User,

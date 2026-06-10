@@ -10,7 +10,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Star,
-  Heart,
   ArrowLeft,
   Plus,
   Minus,
@@ -158,7 +157,6 @@ function TokoKatalogPageContent() {
   const [totalPages, setTotalPages] = useState(1);
 
   // Navigation & Cart States
-  const [wishlist, setWishlist] = useState<Record<string | number, boolean>>({});
   const [addingToCart, setAddingToCart] = useState<string | number | null>(null);
 
   // Search & Filtering States
@@ -319,10 +317,7 @@ function TokoKatalogPageContent() {
     }
   }, [router]);
 
-  // Wishlist toggle handler
-  const toggleWishlist = (id: string | number) => {
-    setWishlist(prev => ({ ...prev, [id]: !prev[id] }));
-  };
+
 
   // Alias filteredProducts to our dynamically fetched and mapped products state
   const filteredProducts = products;
@@ -574,19 +569,7 @@ function TokoKatalogPageContent() {
                     onClick={() => openProductDetail(product)}
                     className="bg-white rounded-3xl border border-[#e2ede7] overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col group relative cursor-pointer"
                   >
-                    {/* Wishlist Heart Icon */}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleWishlist(product.id);
-                      }}
-                      className="absolute top-4 right-4 z-20 w-9 h-9 rounded-full bg-white/90 hover:bg-white shadow-sm flex items-center justify-center text-zinc-400 hover:text-red-500 transition-colors cursor-pointer"
-                      aria-label="Simpan ke Wishlist"
-                    >
-                      <Heart
-                        className={`w-4.5 h-4.5 transition-all ${wishlist[product.id] ? 'fill-red-500 text-red-500 scale-110' : 'text-zinc-400'}`}
-                      />
-                    </button>
+
 
                     {/* Plant Image or Empty Placeholder */}
                     {product.image_url ? (
@@ -1140,19 +1123,7 @@ function TokoKatalogPageContent() {
                     onClick={() => openProductDetail(recommendation)}
                     className="bg-white rounded-3xl border border-[#e2ede7] overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col group relative cursor-pointer"
                   >
-                    {/* Wishlist Heart Icon */}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleWishlist(recommendation.id);
-                      }}
-                      className="absolute top-4 right-4 z-20 w-9 h-9 rounded-full bg-white/90 hover:bg-white shadow-sm flex items-center justify-center text-zinc-400 hover:text-red-500 transition-colors cursor-pointer"
-                      aria-label="Simpan ke Wishlist"
-                    >
-                      <Heart
-                        className={`w-4.5 h-4.5 transition-all ${wishlist[recommendation.id] ? 'fill-red-500 text-red-500 scale-110' : 'text-zinc-400'}`}
-                      />
-                    </button>
+
 
                     {/* Plant image or placeholder */}
                     {recommendation.image_url ? (

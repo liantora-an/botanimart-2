@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Search, ShoppingBag, Heart } from 'lucide-react';
+import { Search, ShoppingBag } from 'lucide-react';
 import Link from 'next/link';
 import NextImage from 'next/image';
 import { useRouter, usePathname } from 'next/navigation';
@@ -163,14 +163,7 @@ export default function Navbar({ activePage }: NavbarProps) {
             )}
           </div>
 
-          {/* Wishlist Icon */}
-          <button
-            onClick={() => alert('Fitur Wishlist sedang dikembangkan!')}
-            className="p-2.5 rounded-full hover:bg-brand-cream text-brand-sage hover:text-brand-forest transition-all relative"
-            aria-label="Wishlist"
-          >
-            <Heart className="w-5 h-5" />
-          </button>
+
 
           {/* Shopping Cart */}
           <Link
