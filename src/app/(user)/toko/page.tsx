@@ -28,6 +28,7 @@ import Link from 'next/link';
 import NextImage from 'next/image';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
+import { toast } from 'sonner';
 
 // Complete Mock Products Database matching mockup
 const PRODUCTS = [
@@ -307,12 +308,12 @@ function TokoKatalogPageContent() {
       }
       if (data.success) {
         window.dispatchEvent(new Event('cart-updated'));
-        alert(`${productName} berhasil ditambahkan ke keranjang!`);
+        toast.success(`${productName} berhasil ditambahkan ke keranjang!`);
       } else {
-        alert(data.error || 'Gagal menambahkan ke keranjang.');
+        toast.error(data.error || 'Gagal menambahkan ke keranjang.');
       }
     } catch {
-      alert('Terjadi kesalahan jaringan.');
+      toast.error('Terjadi kesalahan jaringan.');
     } finally {
       setAddingToCart(null);
     }
@@ -351,7 +352,7 @@ function TokoKatalogPageContent() {
     e.preventDefault();
     if (!selectedProduct) return;
     if (newRating < 1 || newRating > 5) {
-      alert('Rating harus antara 1 dan 5.');
+      toast.warning('Rating harus antara 1 dan 5.');
       return;
     }
 
@@ -368,7 +369,7 @@ function TokoKatalogPageContent() {
         return;
       }
       if (data.success) {
-        alert('Ulasan Anda berhasil dikirim! Terima kasih.');
+        toast.success('Ulasan Anda berhasil dikirim! Terima kasih.');
         setNewComment('');
         setNewRating(5);
         
@@ -403,11 +404,11 @@ function TokoKatalogPageContent() {
           })
         );
       } else {
-        alert(data.error || 'Gagal mengirimkan ulasan.');
+        toast.error(data.error || 'Gagal mengirimkan ulasan.');
       }
     } catch (err) {
       console.error(err);
-      alert('Terjadi kesalahan jaringan.');
+      toast.error('Terjadi kesalahan jaringan.');
     } finally {
       setSubmittingReview(false);
     }
@@ -931,10 +932,10 @@ function TokoKatalogPageContent() {
                         if (data.success) {
                           router.push('/checkout');
                         } else {
-                          alert(data.error || 'Gagal menambahkan ke keranjang.');
+                          toast.error(data.error || 'Gagal menambahkan ke keranjang.');
                         }
                       } catch {
-                        alert('Terjadi kesalahan jaringan.');
+                        toast.error('Terjadi kesalahan jaringan.');
                       } finally {
                         setAddingToCart(null);
                       }

@@ -30,6 +30,7 @@ import Link from 'next/link';
 import NextImage from 'next/image';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
+import { toast } from 'sonner';
 
 // Helper functions for dynamic pricing and formatting
 function formatRupiah(n: number): string {
@@ -186,19 +187,31 @@ export default function HomePage() {
       const data = await res.json();
       if (data.success) {
         window.dispatchEvent(new Event('cart-updated'));
-        alert(`${productName} berhasil ditambahkan ke keranjang!`);
+        toast.success(`${productName} berhasil ditambahkan ke keranjang!`);
       } else {
-        alert(data.error || 'Gagal menambahkan ke keranjang.');
+        toast.error(data.error || 'Gagal menambahkan ke keranjang.');
       }
-    } catch { alert('Terjadi kesalahan jaringan.'); }
+    } catch { toast.error('Terjadi kesalahan jaringan.'); }
     finally { setAddingToCart(null); }
   }, [router]);
 
   // Gallery slider titles
   const galleryItems = [
-    { title: 'Nursery Utama Botani Mart', desc: 'Ratusan varietas bibit buah siap tanam dipelihara oleh tenaga ahli.' },
-    { title: 'Proses Pembibitan Modern', desc: 'Pengembangan teknologi vegetatif untuk menghasilkan pohon buah unggulan.' },
-    { title: 'Layanan Konsultasi Berkebun', desc: 'Tim kami siap membantu merekomendasikan pupuk dan media yang tepat.' }
+    { 
+      title: 'Tani Center IPB University', 
+      desc: 'Kolaborasi strategis Botani Mart dengan IPB Tani Center untuk memajukan pertanian Indonesia.',
+      image: '/images/gallery_1.png'
+    },
+    { 
+      title: 'Peresmian & Pembukaan Gerai', 
+      desc: 'Sambutan resmi peresmian gerai hortikultura Botani Mart di Bogor.',
+      image: '/images/gallery_2.png'
+    },
+    { 
+      title: 'Tim Ahli Botani Mart IPB', 
+      desc: 'Kebersamaan tim pengembang dan akademisi IPB dalam menyokong produk berkualitas.',
+      image: '/images/gallery_3.png'
+    }
   ];
 
   const handleNextGallery = () => {
@@ -255,32 +268,29 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Hero Right Visual Column (Premium CSS Placeholder) */}
+          {/* Hero Right Visual Column (Premium store image) */}
           <div className="lg:col-span-5 relative w-full h-80 sm:h-96 lg:h-[450px] rounded-3xl overflow-hidden shadow-2xl border border-white/40 group">
 
             {/* Visual Glass Overlay */}
-            <div className="absolute inset-0 bg-gradient-to-tr from-brand-forest/90 via-brand-emerald/70 to-transparent z-10" />
+            <div className="absolute inset-0 bg-gradient-to-t from-brand-forest/60 via-transparent to-black/10 z-10" />
 
-            {/* Elegant SVG Graphic to replace actual image */}
-            <div className="absolute inset-0 bg-[#345947] flex flex-col items-center justify-center text-white/90 p-8 text-center select-none overflow-hidden">
-              <div className="absolute w-[180%] h-[180%] border border-white/5 rounded-full animate-[spin_100s_linear_infinite]" />
-              <div className="absolute w-[120%] h-[120%] border border-white/10 rounded-full animate-[spin_60s_linear_infinite]" />
+            <NextImage
+              src="/images/botani_mart_storefront.jpg"
+              alt="Botani Mart Storefront"
+              fill
+              className="object-cover group-hover:scale-105 transition-transform duration-700"
+              sizes="(max-w-7xl) 33vw, 100vw"
+              priority
+            />
 
-              <div className="z-20 flex flex-col items-center max-w-sm space-y-4">
-                <div className="w-20 h-20 rounded-full bg-white/15 backdrop-blur-md flex items-center justify-center border border-white/20 animate-pulse">
-                  <ImageIcon className="w-9 h-9 text-brand-lime" />
-                </div>
-                <h3 className="font-heading font-extrabold text-2xl tracking-wide">
-                  Tampilan Gambar Menyusul
-                </h3>
-                <p className="text-xs text-white/70 leading-relaxed font-medium">
-                  Bagian latar belakang ini akan digantikan oleh foto nursery asri Botani Mart setelah berkas diunggah.
-                </p>
-                <div className="flex gap-2">
-                  <span className="text-[10px] font-bold tracking-widest uppercase bg-brand-lime/20 text-brand-lime px-3 py-1 rounded-full border border-brand-lime/10">100% Organik</span>
-                  <span className="text-[10px] font-bold tracking-widest uppercase bg-brand-lime/20 text-brand-lime px-3 py-1 rounded-full border border-brand-lime/10">Bogor</span>
-                </div>
-              </div>
+            {/* Badge overlay on top of the image */}
+            <div className="absolute top-4 right-4 z-20 flex gap-2">
+              <span className="text-[10px] font-extrabold tracking-widest uppercase bg-brand-emerald/90 backdrop-blur-sm text-white px-3 py-1.5 rounded-full border border-white/10 shadow-md">
+                100% Organik
+              </span>
+              <span className="text-[10px] font-extrabold tracking-widest uppercase bg-brand-emerald/90 backdrop-blur-sm text-white px-3 py-1.5 rounded-full border border-white/10 shadow-md">
+                Bogor
+              </span>
             </div>
           </div>
 
@@ -379,29 +389,35 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Right Column - Galeri/Carousel Placeholder */}
-          <div className="relative rounded-3xl overflow-hidden shadow-xl border border-[#e2ede7] h-80 sm:h-96 flex flex-col bg-brand-cream">
+          {/* Right Column - Galeri/Carousel */}
+          <div className="relative rounded-3xl overflow-hidden shadow-xl border border-[#e2ede7] h-80 sm:h-96 flex flex-col bg-brand-cream group">
 
             {/* Carousel Item Display */}
-            <div className="flex-1 relative flex items-center justify-center p-8 text-center text-brand-forest">
+            <div className="flex-1 relative flex items-end justify-center p-8 text-center text-white">
 
-              {/* Graphic background */}
-              <div className="absolute inset-0 bg-gradient-to-br from-[#c8e6c9]/40 to-[#b3e5fc]/30 z-0" />
+              {/* Real Image Background */}
+              <NextImage
+                src={galleryItems[currentGalleryIndex].image}
+                alt={galleryItems[currentGalleryIndex].title}
+                fill
+                className="object-cover group-hover:scale-102 transition-transform duration-700"
+                sizes="(max-w-7xl) 33vw, 100vw"
+              />
+
+              {/* Graphic Overlay for text readability */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent z-10" />
 
               {/* Overlay Content */}
-              <div className="z-10 flex flex-col items-center space-y-4 max-w-sm">
-                <div className="w-16 h-16 rounded-full bg-white flex items-center justify-center text-brand-emerald shadow-md">
-                  <ImageIcon className="w-7 h-7" />
-                </div>
-                <div className="space-y-1.5">
-                  <h4 className="font-heading font-extrabold text-lg text-brand-forest">
+              <div className="z-20 flex flex-col items-center space-y-2 max-w-[280px] mt-auto">
+                <div className="space-y-1 text-center">
+                  <h4 className="font-heading font-black text-sm text-white tracking-wide">
                     {galleryItems[currentGalleryIndex].title}
                   </h4>
-                  <p className="text-xs text-brand-sage leading-relaxed font-medium">
+                  <p className="text-[10px] text-white/80 leading-relaxed font-medium">
                     {galleryItems[currentGalleryIndex].desc}
                   </p>
                 </div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-brand-emerald/75 bg-brand-emerald/10 px-3 py-1 rounded-full border border-brand-emerald/10">
+                <span className="text-[8px] font-bold uppercase tracking-wider text-brand-lime bg-white/5 px-2.5 py-0.5 rounded-full border border-white/5 backdrop-blur-sm">
                   Slide {currentGalleryIndex + 1} dari {galleryItems.length}
                 </span>
               </div>
@@ -414,14 +430,14 @@ export default function HomePage() {
               <div className="flex gap-2">
                 <button
                   onClick={handlePrevGallery}
-                  className="w-10 h-10 rounded-full border border-[#e2ede7] hover:bg-brand-cream flex items-center justify-center text-brand-sage hover:text-brand-forest transition-colors"
+                  className="w-10 h-10 rounded-full border border-[#e2ede7] hover:bg-brand-cream flex items-center justify-center text-brand-sage hover:text-brand-forest transition-colors cursor-pointer"
                   aria-label="Foto Sebelumnya"
                 >
                   <ChevronLeft className="w-5 h-5" />
                 </button>
                 <button
                   onClick={handleNextGallery}
-                  className="w-10 h-10 rounded-full border border-[#e2ede7] hover:bg-brand-cream flex items-center justify-center text-brand-sage hover:text-brand-forest transition-colors"
+                  className="w-10 h-10 rounded-full border border-[#e2ede7] hover:bg-brand-cream flex items-center justify-center text-brand-sage hover:text-brand-forest transition-colors cursor-pointer"
                   aria-label="Foto Selanjutnya"
                 >
                   <ChevronRight className="w-5 h-5" />
@@ -678,8 +694,8 @@ export default function HomePage() {
                           if (res.status === 401) { router.push('/login?from=/'); return; }
                           const data = await res.json();
                           if (data.success) router.push('/checkout');
-                          else alert(data.error || 'Gagal.');
-                        } catch { alert('Terjadi kesalahan jaringan.'); }
+                          else toast.error(data.error || 'Gagal.');
+                        } catch { toast.error('Terjadi kesalahan jaringan.'); }
                         finally { setAddingToCart(null); }
                       }}
                       disabled={addingToCart === product.id}

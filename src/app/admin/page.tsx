@@ -35,6 +35,7 @@ import Link from 'next/link';
 import NextImage from 'next/image';
 import { useRouter } from 'next/navigation';
 import AuthButton from '@/components/layout/AuthButton';
+import { toast } from 'sonner';
 
 export default function AdminDashboardPage() {
   const router = useRouter();
@@ -97,6 +98,14 @@ export default function AdminDashboardPage() {
     content: '',
     published: true
   });
+
+  // Confirm Modal state
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  } | null>(null);
 
   // Fetch all backend tables
   const fetchAllData = useCallback(async () => {
@@ -284,13 +293,13 @@ export default function AdminDashboardPage() {
       const data = await res.json();
       if (res.ok && data.success) {
         setProductForm(prev => ({ ...prev, image: data.data.publicUrl }));
-        alert('Gambar tanaman berhasil diunggah!');
+        toast.success('Gambar tanaman berhasil diunggah!');
       } else {
-        alert(data.error || 'Gagal mengunggah gambar.');
+        toast.error(data.error || 'Gagal mengunggah gambar.');
       }
     } catch (err) {
       console.error(err);
-      alert('Terjadi kesalahan saat mengunggah gambar.');
+      toast.error('Terjadi kesalahan saat mengunggah gambar.');
     } finally {
       setUploadingImage(false);
     }
@@ -300,11 +309,11 @@ export default function AdminDashboardPage() {
   const handleProductSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!productForm.name || !productForm.price || !productForm.stock || !productForm.category_id) {
-      alert('Mohon isi semua field wajib!');
+      toast.warning('Mohon isi semua field wajib!');
       return;
     }
     if (productForm.pickupMethods.length === 0) {
-      alert('Mohon pilih minimal satu metode pengambilan!');
+      toast.warning('Mohon pilih minimal satu metode pengambilan!');
       return;
     }
 
@@ -342,7 +351,7 @@ export default function AdminDashboardPage() {
 
       const data = await res.json();
       if (res.ok && data.success) {
-        alert(editingProduct ? 'Produk berhasil diperbarui!' : 'Produk baru berhasil ditambahkan!');
+        toast.success(editingProduct ? 'Produk berhasil diperbarui!' : 'Produk baru berhasil ditambahkan!');
         setIsProductModalOpen(false);
         setEditingProduct(null);
         setProductForm({
@@ -357,11 +366,11 @@ export default function AdminDashboardPage() {
         });
         fetchAllData();
       } else {
-        alert(data.error || 'Gagal menyimpan produk.');
+        toast.error(data.error || 'Gagal menyimpan produk.');
       }
     } catch (err) {
       console.error(err);
-      alert('Gagal menyimpan produk.');
+      toast.error('Gagal menyimpan produk.');
     }
   };
 
@@ -382,29 +391,34 @@ export default function AdminDashboardPage() {
   };
 
   // Delete Product
-  const handleDeleteProduct = async (id: string) => {
-    if (confirm('Apakah Anda yakin ingin menghapus produk ini?')) {
-      try {
-        const res = await fetch(`/api/catalog/${id}`, { method: 'DELETE' });
-        const data = await res.json();
-        if (res.ok && data.success) {
-          alert('Produk berhasil dihapus!');
-          fetchAllData();
-        } else {
-          alert(data.error || 'Gagal menghapus produk.');
+  const handleDeleteProduct = (id: string) => {
+    setConfirmModal({
+      isOpen: true,
+      title: 'Hapus Produk',
+      message: 'Apakah Anda yakin ingin menghapus produk ini? Tindakan ini tidak dapat dibatalkan.',
+      onConfirm: async () => {
+        try {
+          const res = await fetch(`/api/catalog/${id}`, { method: 'DELETE' });
+          const data = await res.json();
+          if (res.ok && data.success) {
+            toast.success('Produk berhasil dihapus!');
+            fetchAllData();
+          } else {
+            toast.error(data.error || 'Gagal menghapus produk.');
+          }
+        } catch (err) {
+          console.error(err);
+          toast.error('Gagal menghapus produk.');
         }
-      } catch (err) {
-        console.error(err);
-        alert('Gagal menghapus produk.');
       }
-    }
+    });
   };
 
   // Activity Form CRUD Submit
   const handleActivitySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!activityForm.title || !activityForm.author || !activityForm.summary) {
-      alert('Mohon isi semua field wajib!');
+      toast.warning('Mohon isi semua field wajib!');
       return;
     }
 
@@ -437,17 +451,17 @@ export default function AdminDashboardPage() {
 
       const data = await res.json();
       if (res.ok && data.success) {
-        alert(editingActivity ? 'Kegiatan berhasil diperbarui!' : 'Kegiatan baru berhasil ditambahkan!');
+        toast.success(editingActivity ? 'Kegiatan berhasil diperbarui!' : 'Kegiatan baru berhasil ditambahkan!');
         setIsActivityModalOpen(false);
         setEditingActivity(null);
         setActivityForm({ title: '', author: '', date: new Date().toISOString().split('T')[0], category: 'Edukasi & Informasi', summary: '', content: '', published: true });
         fetchAllData();
       } else {
-        alert(data.error || 'Gagal menyimpan kegiatan.');
+        toast.error(data.error || 'Gagal menyimpan kegiatan.');
       }
     } catch (err) {
       console.error(err);
-      alert('Gagal menyimpan kegiatan.');
+      toast.error('Gagal menyimpan kegiatan.');
     }
   };
 
@@ -457,43 +471,58 @@ export default function AdminDashboardPage() {
   };
 
   // Delete Activity
-  const handleDeleteActivity = async (id: string) => {
-    if (confirm('Apakah Anda yakin ingin menghapus kegiatan ini?')) {
-      try {
-        const res = await fetch(`/api/activities/${id}`, { method: 'DELETE' });
-        const data = await res.json();
-        if (res.ok && data.success) {
-          alert('Kegiatan berhasil dihapus!');
-          fetchAllData();
-        } else {
-          alert(data.error || 'Gagal menghapus kegiatan.');
+  const handleDeleteActivity = (id: string) => {
+    setConfirmModal({
+      isOpen: true,
+      title: 'Hapus Artikel Kegiatan',
+      message: 'Apakah Anda yakin ingin menghapus kegiatan ini? Tindakan ini tidak dapat dibatalkan.',
+      onConfirm: async () => {
+        try {
+          const res = await fetch(`/api/activities/${id}`, { method: 'DELETE' });
+          const data = await res.json();
+          if (res.ok && data.success) {
+            toast.success('Kegiatan berhasil dihapus!');
+            fetchAllData();
+          } else {
+            toast.error(data.error || 'Gagal menghapus kegiatan.');
+          }
+        } catch (err) {
+          console.error(err);
+          toast.error('Gagal menghapus kegiatan.');
         }
-      } catch (err) {
-        console.error(err);
-        alert('Gagal menghapus kegiatan.');
       }
-    }
+    });
   };
 
   // Manual update of order status by Admin
-  const handleUpdateOrderStatus = async (orderId: string, status: string) => {
-    try {
-      const res = await fetch(`/api/admin/orders/${orderId}/status`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status })
-      });
-      const data = await res.json();
-      if (res.ok && data.success) {
-        alert('Status pesanan berhasil diperbarui!');
-        fetchAllData();
-      } else {
-        alert(data.error || 'Gagal memperbarui status pesanan.');
+  const handleUpdateOrderStatus = (orderId: string, status: string) => {
+    setConfirmModal({
+      isOpen: true,
+      title: 'Perbarui Status Pesanan',
+      message: `Apakah Anda yakin ingin memperbarui status pesanan menjadi "${status.toUpperCase()}"?`,
+      onConfirm: async () => {
+        try {
+          const res = await fetch(`/api/admin/orders/${orderId}/status`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status })
+          });
+          const data = await res.json();
+          if (res.ok && data.success) {
+            toast.success('Status pesanan berhasil diperbarui!');
+            fetchAllData();
+            setSelectedOrderDetails((prev: any) =>
+              prev && prev.id === orderId ? { ...prev, status } : prev
+            );
+          } else {
+            toast.error(data.error || 'Gagal memperbarui status pesanan.');
+          }
+        } catch (err) {
+          console.error(err);
+          toast.error('Gagal memperbarui status pesanan.');
+        }
       }
-    } catch (err) {
-      console.error(err);
-      alert('Gagal memperbarui status pesanan.');
-    }
+    });
   };
 
   // Dynamic statistics from live order database
@@ -1971,7 +2000,6 @@ export default function AdminDashboardPage() {
                   value={selectedOrderDetails.status}
                   onChange={(e) => {
                     handleUpdateOrderStatus(selectedOrderDetails.id, e.target.value);
-                    setSelectedOrderDetails((prev: any) => prev ? { ...prev, status: e.target.value } : null);
                   }}
                   className={`text-[10px] font-bold border rounded-full px-3 py-1.5 focus:outline-none cursor-pointer tracking-wider uppercase bg-white ${
                     selectedOrderDetails.status === 'completed'
@@ -2001,7 +2029,50 @@ export default function AdminDashboardPage() {
                 Tutup Detail
               </button>
             </div>
+          </div>
+        </div>
+      )}
 
+      {/* CONFIRMATION MODAL */}
+      {confirmModal && confirmModal.isOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#1e3329]/40 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-[36px] border border-[#e2ede7] shadow-2xl p-6 sm:p-8 max-w-sm w-full animate-scale-in text-brand-forest">
+            
+            {/* Warning Icon */}
+            <div className="w-16 h-16 rounded-full bg-rose-50 flex items-center justify-center text-rose-600 mx-auto mb-4 border border-rose-100">
+              <ShieldAlert className="w-8 h-8" />
+            </div>
+
+            {/* Title & Desc */}
+            <h3 className="font-heading font-black text-xl text-center text-[#1e3329]">
+              {confirmModal.title}
+            </h3>
+            <p className="text-xs text-brand-sage text-center mt-2.5 leading-relaxed font-semibold">
+              {confirmModal.message}
+            </p>
+
+            {/* Action Buttons */}
+            <div className="flex gap-3 mt-6">
+              <button
+                type="button"
+                onClick={() => {
+                  setConfirmModal(null);
+                }}
+                className="flex-1 py-3.5 rounded-full border border-zinc-200 text-brand-sage hover:bg-brand-cream/40 hover:text-brand-forest font-bold text-xs uppercase tracking-widest transition-all cursor-pointer text-center"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  confirmModal.onConfirm();
+                  setConfirmModal(null);
+                }}
+                className="flex-1 py-3.5 rounded-full bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs uppercase tracking-widest transition-all cursor-pointer text-center shadow-md shadow-rose-600/10"
+              >
+                Konfirmasi
+              </button>
+            </div>
           </div>
         </div>
       )}
