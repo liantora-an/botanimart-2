@@ -8,6 +8,7 @@ import {
 } from '@/backend/repositories/cart.repository';
 import { getPlantById } from '@/backend/repositories/catalog.repository';
 import type { CartWithPlant } from '@/backend/types';
+import { getActivePrice } from '@/backend/utils/discount';
 
 /**
  * cart.service.ts
@@ -32,7 +33,7 @@ export async function getCart(userId: string): Promise<{
   const items = await getCartByUserId(userId);
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
   const totalPrice = items.reduce(
-    (sum, item) => sum + (item.plant?.price ?? 0) * item.quantity,
+    (sum, item) => sum + (item.plant ? getActivePrice(item.plant) : 0) * item.quantity,
     0
   );
   return { items, totalItems, totalPrice };
@@ -152,7 +153,7 @@ export async function validateCartForCheckout(userId: string): Promise<{
   }
 
   const totalAmount = items.reduce(
-    (sum, item) => sum + (item.plant?.price ?? 0) * item.quantity,
+    (sum, item) => sum + (item.plant ? getActivePrice(item.plant) : 0) * item.quantity,
     0
   );
 

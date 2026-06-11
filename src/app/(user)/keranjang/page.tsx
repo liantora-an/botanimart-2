@@ -10,12 +10,16 @@ import NextImage from 'next/image';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import { useRouter } from 'next/navigation';
+import { isDiscountActive, getActivePrice } from '@/backend/utils/discount';
 
 interface CartPlant {
   id: string;
   name: string;
   slug: string;
   price: number;
+  discount_price: number | null;
+  discount_start_date?: string | null;
+  discount_end_date?: string | null;
   stock: number;
   unit: string;
   image_url: string | null;
@@ -212,7 +216,18 @@ export default function KeranjangPage() {
                     <div className="flex-1 min-w-0">
                       <h3 className="font-semibold text-sm sm:text-base truncate">{item.plant.name}</h3>
                       <p className="text-brand-emerald font-bold text-sm mt-0.5">
-                        {formatRupiah(item.plant.price)}
+                        {isDiscountActive(item.plant) ? (
+                          <span className="flex items-center gap-1.5 flex-wrap">
+                            <span className="text-zinc-400 line-through text-xs font-semibold">
+                              {formatRupiah(item.plant.price)}
+                            </span>
+                            <span>
+                              {formatRupiah(item.plant.discount_price!)}
+                            </span>
+                          </span>
+                        ) : (
+                          formatRupiah(item.plant.price)
+                        )}
                         <span className="text-brand-sage font-normal text-xs">/{item.plant.unit}</span>
                       </p>
                       <p className="text-xs text-brand-sage mt-1">Stok: {item.plant.stock}</p>
@@ -237,7 +252,9 @@ export default function KeranjangPage() {
                           </button>
                         </div>
                         <div className="flex items-center gap-3">
-                          <span className="font-bold text-sm">{formatRupiah(item.plant.price * item.quantity)}</span>
+                          <span className="font-bold text-sm">
+                            {formatRupiah(getActivePrice(item.plant) * item.quantity)}
+                          </span>
                           <button
                             onClick={() => removeItem(item.id)}
                             className="p-2 rounded-full text-red-400 hover:text-red-600 hover:bg-red-50 transition-all"

@@ -54,6 +54,16 @@ export async function addPlant(
   if (input.price === undefined || input.price < 0) {
     return { success: false, error: 'Harga tidak valid.' };
   }
+  if (input.discount_price !== undefined && input.discount_price !== null) {
+    if (input.discount_price < 0 || input.discount_price >= input.price) {
+      return { success: false, error: 'Harga diskon harus positif dan lebih kecil dari harga normal.' };
+    }
+  }
+  if (input.discount_start_date && input.discount_end_date) {
+    if (new Date(input.discount_end_date) <= new Date(input.discount_start_date)) {
+      return { success: false, error: 'Tanggal berakhir diskon harus setelah tanggal mulai.' };
+    }
+  }
   if (input.stock === undefined || input.stock < 0) {
     return { success: false, error: 'Stok tidak boleh negatif.' };
   }
@@ -74,6 +84,26 @@ export async function editPlant(
   }
   if (updates.stock !== undefined && updates.stock < 0) {
     return { success: false, error: 'Stok tidak boleh negatif.' };
+  }
+  
+  const currentPlant = await getPlantById(id);
+  
+  if (updates.discount_price !== undefined && updates.discount_price !== null) {
+    if (updates.discount_price < 0) {
+      return { success: false, error: 'Harga diskon tidak boleh negatif.' };
+    }
+    const targetPrice = updates.price !== undefined ? updates.price : (currentPlant?.price ?? 0);
+    if (updates.discount_price >= targetPrice) {
+      return { success: false, error: 'Harga diskon harus lebih kecil dari harga normal.' };
+    }
+  }
+
+  const startDate = updates.discount_start_date !== undefined ? updates.discount_start_date : (currentPlant?.discount_start_date ?? null);
+  const endDate = updates.discount_end_date !== undefined ? updates.discount_end_date : (currentPlant?.discount_end_date ?? null);
+  if (startDate && endDate) {
+    if (new Date(endDate) <= new Date(startDate)) {
+      return { success: false, error: 'Tanggal berakhir diskon harus setelah tanggal mulai.' };
+    }
   }
 
   const plant = await updatePlant(id, updates);

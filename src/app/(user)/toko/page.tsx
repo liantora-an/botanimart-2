@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { isDiscountActive } from '@/backend/utils/discount';
 import {
   Search,
   ShoppingBag,
@@ -10,7 +11,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Star,
-  Heart,
   ArrowLeft,
   Plus,
   Minus,
@@ -28,6 +28,7 @@ import Link from 'next/link';
 import NextImage from 'next/image';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
+import { toast } from 'sonner';
 
 // Complete Mock Products Database matching mockup
 const PRODUCTS = [
@@ -157,7 +158,6 @@ function TokoKatalogPageContent() {
   const [totalPages, setTotalPages] = useState(1);
 
   // Navigation & Cart States
-  const [wishlist, setWishlist] = useState<Record<string | number, boolean>>({});
   const [addingToCart, setAddingToCart] = useState<string | number | null>(null);
 
   // Search & Filtering States
@@ -263,6 +263,9 @@ function TokoKatalogPageContent() {
             name: p.name,
             category: p.category?.name || 'Tanaman',
             price: p.price,
+            discount_price: p.discount_price,
+            discount_start_date: p.discount_start_date,
+            discount_end_date: p.discount_end_date,
             unit: p.unit || 'buah',
             rating: p.rating_avg ? Number(p.rating_avg) : 0,
             reviews: p.rating_count || 0,
@@ -307,21 +310,18 @@ function TokoKatalogPageContent() {
       }
       if (data.success) {
         window.dispatchEvent(new Event('cart-updated'));
-        alert(`${productName} berhasil ditambahkan ke keranjang!`);
+        toast.success(`${productName} berhasil ditambahkan ke keranjang!`);
       } else {
-        alert(data.error || 'Gagal menambahkan ke keranjang.');
+        toast.error(data.error || 'Gagal menambahkan ke keranjang.');
       }
     } catch {
-      alert('Terjadi kesalahan jaringan.');
+      toast.error('Terjadi kesalahan jaringan.');
     } finally {
       setAddingToCart(null);
     }
   }, [router]);
 
-  // Wishlist toggle handler
-  const toggleWishlist = (id: string | number) => {
-    setWishlist(prev => ({ ...prev, [id]: !prev[id] }));
-  };
+
 
   // Alias filteredProducts to our dynamically fetched and mapped products state
   const filteredProducts = products;
@@ -351,7 +351,7 @@ function TokoKatalogPageContent() {
     e.preventDefault();
     if (!selectedProduct) return;
     if (newRating < 1 || newRating > 5) {
-      alert('Rating harus antara 1 dan 5.');
+      toast.warning('Rating harus antara 1 dan 5.');
       return;
     }
 
@@ -368,7 +368,7 @@ function TokoKatalogPageContent() {
         return;
       }
       if (data.success) {
-        alert('Ulasan Anda berhasil dikirim! Terima kasih.');
+        toast.success('Ulasan Anda berhasil dikirim! Terima kasih.');
         setNewComment('');
         setNewRating(5);
         
@@ -403,11 +403,11 @@ function TokoKatalogPageContent() {
           })
         );
       } else {
-        alert(data.error || 'Gagal mengirimkan ulasan.');
+        toast.error(data.error || 'Gagal mengirimkan ulasan.');
       }
     } catch (err) {
       console.error(err);
-      alert('Terjadi kesalahan jaringan.');
+      toast.error('Terjadi kesalahan jaringan.');
     } finally {
       setSubmittingReview(false);
     }
@@ -573,19 +573,13 @@ function TokoKatalogPageContent() {
                     onClick={() => openProductDetail(product)}
                     className="bg-white rounded-3xl border border-[#e2ede7] overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col group relative cursor-pointer"
                   >
-                    {/* Wishlist Heart Icon */}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleWishlist(product.id);
-                      }}
-                      className="absolute top-4 right-4 z-20 w-9 h-9 rounded-full bg-white/90 hover:bg-white shadow-sm flex items-center justify-center text-zinc-400 hover:text-red-500 transition-colors cursor-pointer"
-                      aria-label="Simpan ke Wishlist"
-                    >
-                      <Heart
-                        className={`w-4.5 h-4.5 transition-all ${wishlist[product.id] ? 'fill-red-500 text-red-500 scale-110' : 'text-zinc-400'}`}
-                      />
-                    </button>
+                    {/* Discount Badge */}
+                    {isDiscountActive(product) && (
+                      <div className="absolute top-4 left-4 z-20 px-3 py-1.5 rounded-full bg-rose-600 text-white font-extrabold text-[10px] uppercase tracking-wider shadow-md">
+                        Diskon {Math.round(((product.price - product.discount_price) / product.price) * 100)}%
+                      </div>
+                    )}
+
 
                     {/* Plant Image or Empty Placeholder */}
                     {product.image_url ? (
@@ -621,8 +615,22 @@ function TokoKatalogPageContent() {
                         {product.name}
                       </h3>
 
-                      <div className="text-base font-bold text-brand-emerald">
-                        Rp. {product.price.toLocaleString('id-ID')}
+                      {/* Price */}
+                      <div className="flex items-center gap-2">
+                        {isDiscountActive(product) ? (
+                          <>
+                            <span className="text-xs font-bold text-zinc-400 line-through">
+                              Rp. {product.price.toLocaleString('id-ID')}
+                            </span>
+                            <span className="text-base font-black text-brand-emerald">
+                              Rp. {product.discount_price.toLocaleString('id-ID')}
+                            </span>
+                          </>
+                        ) : (
+                          <div className="text-base font-black text-brand-emerald">
+                            Rp. {product.price.toLocaleString('id-ID')}
+                          </div>
+                        )}
                       </div>
 
                       <div className="flex items-center gap-1 text-xs text-brand-sage font-semibold">
@@ -848,8 +856,24 @@ function TokoKatalogPageContent() {
                 </div>
 
                 {/* Price Label */}
-                <div className="text-3xl font-heading font-black text-brand-emerald border-y border-[#e2ede7] py-4">
-                  Rp. {selectedProduct.price.toLocaleString('id-ID')}
+                <div className="border-y border-[#e2ede7] py-4">
+                  {isDiscountActive(selectedProduct) ? (
+                    <div className="flex items-baseline gap-3">
+                      <span className="text-sm font-bold text-zinc-400 line-through">
+                        Rp. {selectedProduct.price.toLocaleString('id-ID')}
+                      </span>
+                      <span className="text-3xl font-heading font-black text-brand-emerald">
+                        Rp. {selectedProduct.discount_price.toLocaleString('id-ID')}
+                      </span>
+                      <span className="text-xs font-extrabold text-white bg-rose-600 px-2 py-0.5 rounded shadow-sm">
+                        Diskon {Math.round(((selectedProduct.price - selectedProduct.discount_price) / selectedProduct.price) * 100)}%
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="text-3xl font-heading font-black text-brand-emerald">
+                      Rp. {selectedProduct.price.toLocaleString('id-ID')}
+                    </div>
+                  )}
                 </div>
 
                 {/* Pengambilan Info */}
@@ -858,12 +882,14 @@ function TokoKatalogPageContent() {
                     <span className="text-xs font-extrabold text-brand-sage uppercase tracking-widest w-24">Pengambilan</span>
 
                     <div className="flex flex-wrap gap-2 text-xs font-bold">
-                      <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-brand-cream border border-[#e2ede7] text-brand-forest">
-                        🚚 Dikirim (Tiba dalam 2-3 jam)
-                      </span>
-                      <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-brand-cream border border-[#e2ede7] text-brand-forest">
-                        🏪 Ambil Langsung
-                      </span>
+                      {selectedProduct.features && selectedProduct.features.map((method: string, index: number) => {
+                        const isDelivery = method.toLowerCase().includes('kirim');
+                        return (
+                          <span key={index} className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-brand-cream border border-[#e2ede7] text-brand-forest">
+                            {isDelivery ? '🚚 Kirim' : '🏪 Ambil Langsung'}
+                          </span>
+                        );
+                      })}
                     </div>
                   </div>
 
@@ -929,10 +955,10 @@ function TokoKatalogPageContent() {
                         if (data.success) {
                           router.push('/checkout');
                         } else {
-                          alert(data.error || 'Gagal menambahkan ke keranjang.');
+                          toast.error(data.error || 'Gagal menambahkan ke keranjang.');
                         }
                       } catch {
-                        alert('Terjadi kesalahan jaringan.');
+                        toast.error('Terjadi kesalahan jaringan.');
                       } finally {
                         setAddingToCart(null);
                       }
@@ -978,16 +1004,20 @@ function TokoKatalogPageContent() {
                 {activeDetailTab === 'deskripsi' ? (
                   <div className="text-brand-sage text-base space-y-4 max-w-4xl">
                     <p>{selectedProduct.description}</p>
-                    <p className="font-semibold text-brand-forest mt-2">
-                      Spesifikasi & Kelebihan:
-                    </p>
-                    <ul className="list-disc list-inside pl-4 space-y-1 text-sm font-medium">
-                      <li>Tinggi Tanaman: ± 50cm s.d 70cm</li>
-                      <li>Metode Perbanyakan: Okulasi vegetatif berkualitas</li>
-                      <li>Kebutuhan Sinar Matahari: Sepanjang hari</li>
-                      <li>Media Tanam Ideal: Campuran tanah, pupuk organik, sekam</li>
-                      <li>Kondisi Pengiriman: Bebas penyakit, dikemas rapi, akar terlindungi</li>
-                    </ul>
+                    {selectedProduct.tags && selectedProduct.tags.filter((t: string) => t !== 'Terbaru' && t !== 'Best Seller').length > 0 && (
+                      <>
+                        <p className="font-semibold text-brand-forest mt-2">
+                          Spesifikasi & Kelebihan:
+                        </p>
+                        <ul className="list-disc list-inside pl-4 space-y-1 text-sm font-medium">
+                          {selectedProduct.tags
+                            .filter((t: string) => t !== 'Terbaru' && t !== 'Best Seller')
+                            .map((tag: string, index: number) => (
+                              <li key={index}>{tag}</li>
+                            ))}
+                        </ul>
+                      </>
+                    )}
                   </div>
                 ) : (
                   <div className="space-y-8 max-w-3xl text-left">
@@ -1133,19 +1163,13 @@ function TokoKatalogPageContent() {
                     onClick={() => openProductDetail(recommendation)}
                     className="bg-white rounded-3xl border border-[#e2ede7] overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col group relative cursor-pointer"
                   >
-                    {/* Wishlist Heart Icon */}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleWishlist(recommendation.id);
-                      }}
-                      className="absolute top-4 right-4 z-20 w-9 h-9 rounded-full bg-white/90 hover:bg-white shadow-sm flex items-center justify-center text-zinc-400 hover:text-red-500 transition-colors cursor-pointer"
-                      aria-label="Simpan ke Wishlist"
-                    >
-                      <Heart
-                        className={`w-4.5 h-4.5 transition-all ${wishlist[recommendation.id] ? 'fill-red-500 text-red-500 scale-110' : 'text-zinc-400'}`}
-                      />
-                    </button>
+                    {/* Discount Badge */}
+                    {isDiscountActive(recommendation) && (
+                      <div className="absolute top-3 left-3 z-20 px-2.5 py-1.5 rounded-full bg-rose-600 text-white font-extrabold text-[9px] uppercase tracking-wider shadow-md">
+                        Diskon {Math.round(((recommendation.price - recommendation.discount_price) / recommendation.price) * 100)}%
+                      </div>
+                    )}
+
 
                     {/* Plant image or placeholder */}
                     {recommendation.image_url ? (
@@ -1179,8 +1203,22 @@ function TokoKatalogPageContent() {
                         {recommendation.name}
                       </h4>
 
-                      <div className="text-sm font-bold text-brand-emerald">
-                        Rp. {recommendation.price.toLocaleString('id-ID')}
+                      {/* Price */}
+                      <div className="flex items-center gap-1.5">
+                        {isDiscountActive(recommendation) ? (
+                          <>
+                            <span className="text-[10px] font-bold text-zinc-400 line-through">
+                              Rp. {recommendation.price.toLocaleString('id-ID')}
+                            </span>
+                            <span className="text-sm font-black text-brand-emerald">
+                              Rp. {recommendation.discount_price.toLocaleString('id-ID')}
+                            </span>
+                          </>
+                        ) : (
+                          <div className="text-sm font-black text-brand-emerald">
+                            Rp. {recommendation.price.toLocaleString('id-ID')}
+                          </div>
+                        )}
                       </div>
 
                       <div className="flex items-center gap-1 text-xs text-brand-sage font-semibold">
