@@ -7,6 +7,7 @@ import {
   getOrderById,
   listAllOrders,
   updateOrderStatusByAdmin,
+  updateOrderAfterPayment,
 } from '@/backend/repositories/order.repository';
 import { decrementStockForOrder } from '@/backend/repositories/catalog.repository';
 import type { Order, OrderStatus } from '@/backend/types';
@@ -67,7 +68,7 @@ export async function checkout(params: {
     items: items.map((item) => ({
       plant_id: item.plant_id,
       plant_name: item.plant!.name,
-      price_at_purchase: item.plant!.price,
+      price_at_purchase: item.plant!.discount_price ?? item.plant!.price,
       quantity: item.quantity,
     })),
   });
@@ -85,7 +86,7 @@ export async function checkout(params: {
     items: items.map((item) => ({
       id: item.plant_id,
       name: item.plant!.name,
-      price: item.plant!.price,
+      price: item.plant!.discount_price ?? item.plant!.price,
       quantity: item.quantity,
     })),
   });
@@ -107,6 +108,85 @@ export async function checkout(params: {
     success: true,
     orderId: order.id,
     snapToken: tokenResult.token,
+  };
+}
+
+/**
+ * Demo checkout flow:
+ * 1. Validate cart (stock check)
+ * 2. Create order + items in DB with a demo order ID
+ * 3. Immediately set status to 'paid'
+ * 4. Decrement catalog stock for items in the order
+ * 5. Clear cart
+ * Returns success and orderId.
+ */
+export async function checkoutDemo(params: {
+  userId: string;
+  userEmail: string;
+  userName: string | null;
+  notes?: string;
+}): Promise<{ success: boolean; orderId?: string; error?: string }> {
+  // 1. Validate cart
+  const { valid, items, insufficientItems, totalAmount } =
+    await validateCartForCheckout(params.userId);
+
+  if (items.length === 0) {
+    return { success: false, error: 'Keranjang belanja kosong.' };
+  }
+  if (!valid) {
+    const names = insufficientItems.map((i) => i.name).join(', ');
+    return {
+      success: false,
+      error: `Stok tidak mencukupi untuk: ${names}. Silakan perbarui keranjang Anda.`,
+    };
+  }
+
+  // 2. Generate unique Midtrans demo order ID
+  const midtransOrderId = `BM-DEMO-${Date.now()}-${randomUUID().slice(0, 8).toUpperCase()}`;
+
+  // 3. Create order + items in DB transaction
+  const order = await createOrderWithItems({
+    userId: params.userId,
+    totalAmount,
+    midtransOrderId,
+    notes: params.notes,
+    items: items.map((item) => ({
+      plant_id: item.plant_id,
+      plant_name: item.plant!.name,
+      price_at_purchase: item.plant!.discount_price ?? item.plant!.price,
+      quantity: item.quantity,
+    })),
+  });
+
+  if (!order) {
+    return { success: false, error: 'Gagal membuat pesanan. Silakan coba lagi.' };
+  }
+
+  // 4. Update order status immediately to 'paid' in DB
+  const updated = await updateOrderAfterPayment({
+    orderId: order.id,
+    status: 'paid',
+    midtransTransactionId: `DEMO-${Date.now()}`,
+    paymentMethod: 'Demo Checkout',
+    paidAt: new Date().toISOString(),
+  });
+
+  if (!updated) {
+    return { success: false, error: 'Gagal memperbarui status pembayaran demo.' };
+  }
+
+  // 5. Decrement stock
+  const fullOrder = await getOrderById(order.id);
+  if (fullOrder) {
+    await handleSuccessfulPayment(fullOrder);
+  }
+
+  // 6. Clear cart
+  await emptyCart(params.userId);
+
+  return {
+    success: true,
+    orderId: order.id,
   };
 }
 

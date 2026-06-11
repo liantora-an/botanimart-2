@@ -31,6 +31,7 @@ export interface Plant {
   slug: string;
   description: string | null;
   price: number;           // stored as integer IDR (e.g. 25000)
+  discount_price: number | null;
   stock: number;
   unit: string;            // e.g. "buah", "pack"
   image_url: string | null;

@@ -27,18 +27,21 @@ import {
   ArrowUpDown,
   Image as ImageIcon,
   Loader2,
-  ShieldAlert
+  ShieldAlert,
+  ClipboardList,
+  Eye
 } from 'lucide-react';
 import Link from 'next/link';
 import NextImage from 'next/image';
 import { useRouter } from 'next/navigation';
 import AuthButton from '@/components/layout/AuthButton';
+import { toast } from 'sonner';
 
 export default function AdminDashboardPage() {
   const router = useRouter();
 
   // Navigation Menu state
-  const [activeMenu, setActiveMenu] = useState<'dashboard' | 'produk' | 'kegiatan'>('dashboard');
+  const [activeMenu, setActiveMenu] = useState<'dashboard' | 'produk' | 'kegiatan' | 'pesanan'>('dashboard');
 
   // Auth & Protection States
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -56,6 +59,9 @@ export default function AdminDashboardPage() {
   // Search states
   const [productSearch, setProductSearch] = useState('');
   const [activitySearch, setActivitySearch] = useState('');
+  const [orderSearch, setOrderSearch] = useState('');
+  const [selectedStatusFilter, setSelectedStatusFilter] = useState('all');
+  const [selectedOrderDetails, setSelectedOrderDetails] = useState<any | null>(null);
 
   // Uploading image state indicator
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -67,10 +73,12 @@ export default function AdminDashboardPage() {
     name: '',
     category_id: '',
     price: '',
+    discount_price: '',
     stock: '',
     description: '',
     image: '',
-    pickupMethods: ['Kirim', 'Ambil Sendiri'] as string[]
+    pickupMethods: ['Kirim', 'Ambil Sendiri'] as string[],
+    tags: ''
   });
 
   // Product Sorting state
@@ -91,6 +99,14 @@ export default function AdminDashboardPage() {
     content: '',
     published: true
   });
+
+  // Confirm Modal state
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  } | null>(null);
 
   // Fetch all backend tables
   const fetchAllData = useCallback(async () => {
@@ -118,7 +134,7 @@ export default function AdminDashboardPage() {
             categoryName: p.category?.name || 'Tanpa Kategori',
             image: p.image_url || '',
             pickupMethods: p.pickup_methods || ['Kirim', 'Ambil Sendiri'],
-            rating: p.rating_avg || 4.8
+            rating: p.rating_avg !== undefined && p.rating_avg !== null ? Number(p.rating_avg) : 0
           }));
           setProducts(mappedProds);
         }
@@ -219,6 +235,48 @@ export default function AdminDashboardPage() {
     );
   }, [activities, activitySearch]);
 
+  // Order counts for filters
+  const orderCounts = useMemo(() => {
+    return {
+      all: orders.length,
+      pending: orders.filter(o => o.status === 'pending').length,
+      paid: orders.filter(o => o.status === 'paid').length,
+      processing: orders.filter(o => o.status === 'processing').length,
+      shipped: orders.filter(o => o.status === 'shipped').length,
+      completed: orders.filter(o => o.status === 'completed').length,
+      canceled: orders.filter(o => ['canceled', 'expired'].includes(o.status)).length,
+    };
+  }, [orders]);
+
+  // Order Search and Status Filter
+  const filteredOrders = useMemo(() => {
+    let result = orders;
+
+    // Apply status filter
+    if (selectedStatusFilter !== 'all') {
+      if (selectedStatusFilter === 'canceled') {
+        result = result.filter(o => ['canceled', 'expired'].includes(o.status));
+      } else {
+        result = result.filter(o => o.status === selectedStatusFilter);
+      }
+    }
+
+    // Apply search
+    if (orderSearch.trim() !== '') {
+      const query = orderSearch.toLowerCase();
+      result = result.filter(o => {
+        const orderId = (o.midtrans_order_id || o.id).toLowerCase();
+        const customerName = (o.user?.full_name || o.user?.email || 'Guest').toLowerCase();
+        const itemsStr = o.order_items
+          ? o.order_items.map((i: any) => i.plant_name.toLowerCase()).join(' ')
+          : '';
+        return orderId.includes(query) || customerName.includes(query) || itemsStr.includes(query);
+      });
+    }
+
+    return result;
+  }, [orders, selectedStatusFilter, orderSearch]);
+
   // Handle Dynamic Upload for Product Images
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -236,13 +294,13 @@ export default function AdminDashboardPage() {
       const data = await res.json();
       if (res.ok && data.success) {
         setProductForm(prev => ({ ...prev, image: data.data.publicUrl }));
-        alert('Gambar tanaman berhasil diunggah!');
+        toast.success('Gambar tanaman berhasil diunggah!');
       } else {
-        alert(data.error || 'Gagal mengunggah gambar.');
+        toast.error(data.error || 'Gagal mengunggah gambar.');
       }
     } catch (err) {
       console.error(err);
-      alert('Terjadi kesalahan saat mengunggah gambar.');
+      toast.error('Terjadi kesalahan saat mengunggah gambar.');
     } finally {
       setUploadingImage(false);
     }
@@ -252,23 +310,37 @@ export default function AdminDashboardPage() {
   const handleProductSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!productForm.name || !productForm.price || !productForm.stock || !productForm.category_id) {
-      alert('Mohon isi semua field wajib!');
+      toast.warning('Mohon isi semua field wajib!');
       return;
     }
     if (productForm.pickupMethods.length === 0) {
-      alert('Mohon pilih minimal satu metode pengambilan!');
+      toast.warning('Mohon pilih minimal satu metode pengambilan!');
       return;
+    }
+
+    const priceNum = Number(productForm.price);
+    const discountPriceNum = productForm.discount_price ? Number(productForm.discount_price) : null;
+
+    if (discountPriceNum !== null) {
+      if (discountPriceNum < 0 || discountPriceNum >= priceNum) {
+        toast.warning('Harga diskon harus positif dan lebih kecil dari harga normal!');
+        return;
+      }
     }
 
     const payload = {
       name: productForm.name,
       category_id: productForm.category_id,
-      price: Number(productForm.price),
+      price: priceNum,
+      discount_price: discountPriceNum,
       stock: Number(productForm.stock),
       description: productForm.description,
       image_url: productForm.image || null,
       pickup_methods: productForm.pickupMethods,
-      unit: 'buah'
+      unit: 'buah',
+      tags: productForm.tags
+        ? productForm.tags.split(',').map((t: string) => t.trim()).filter((t: string) => t !== '')
+        : []
     };
 
     try {
@@ -291,25 +363,27 @@ export default function AdminDashboardPage() {
 
       const data = await res.json();
       if (res.ok && data.success) {
-        alert(editingProduct ? 'Produk berhasil diperbarui!' : 'Produk baru berhasil ditambahkan!');
+        toast.success(editingProduct ? 'Produk berhasil diperbarui!' : 'Produk baru berhasil ditambahkan!');
         setIsProductModalOpen(false);
         setEditingProduct(null);
         setProductForm({
           name: '',
           category_id: '',
           price: '',
+          discount_price: '',
           stock: '',
           description: '',
           image: '',
-          pickupMethods: ['Kirim', 'Ambil Sendiri']
+          pickupMethods: ['Kirim', 'Ambil Sendiri'],
+          tags: ''
         });
         fetchAllData();
       } else {
-        alert(data.error || 'Gagal menyimpan produk.');
+        toast.error(data.error || 'Gagal menyimpan produk.');
       }
     } catch (err) {
       console.error(err);
-      alert('Gagal menyimpan produk.');
+      toast.error('Gagal menyimpan produk.');
     }
   };
 
@@ -320,38 +394,45 @@ export default function AdminDashboardPage() {
       name: product.name,
       category_id: product.category_id || '',
       price: String(product.price),
+      discount_price: product.discount_price ? String(product.discount_price) : '',
       stock: String(product.stock),
       description: product.description || '',
       image: product.image_url || '',
-      pickupMethods: product.pickup_methods || ['Kirim', 'Ambil Sendiri']
+      pickupMethods: product.pickup_methods || ['Kirim', 'Ambil Sendiri'],
+      tags: product.tags ? product.tags.join(', ') : ''
     });
     setIsProductModalOpen(true);
   };
 
   // Delete Product
-  const handleDeleteProduct = async (id: string) => {
-    if (confirm('Apakah Anda yakin ingin menghapus produk ini?')) {
-      try {
-        const res = await fetch(`/api/catalog/${id}`, { method: 'DELETE' });
-        const data = await res.json();
-        if (res.ok && data.success) {
-          alert('Produk berhasil dihapus!');
-          fetchAllData();
-        } else {
-          alert(data.error || 'Gagal menghapus produk.');
+  const handleDeleteProduct = (id: string) => {
+    setConfirmModal({
+      isOpen: true,
+      title: 'Hapus Produk',
+      message: 'Apakah Anda yakin ingin menghapus produk ini? Tindakan ini tidak dapat dibatalkan.',
+      onConfirm: async () => {
+        try {
+          const res = await fetch(`/api/catalog/${id}`, { method: 'DELETE' });
+          const data = await res.json();
+          if (res.ok && data.success) {
+            toast.success('Produk berhasil dihapus!');
+            fetchAllData();
+          } else {
+            toast.error(data.error || 'Gagal menghapus produk.');
+          }
+        } catch (err) {
+          console.error(err);
+          toast.error('Gagal menghapus produk.');
         }
-      } catch (err) {
-        console.error(err);
-        alert('Gagal menghapus produk.');
       }
-    }
+    });
   };
 
   // Activity Form CRUD Submit
   const handleActivitySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!activityForm.title || !activityForm.author || !activityForm.summary) {
-      alert('Mohon isi semua field wajib!');
+      toast.warning('Mohon isi semua field wajib!');
       return;
     }
 
@@ -384,17 +465,17 @@ export default function AdminDashboardPage() {
 
       const data = await res.json();
       if (res.ok && data.success) {
-        alert(editingActivity ? 'Kegiatan berhasil diperbarui!' : 'Kegiatan baru berhasil ditambahkan!');
+        toast.success(editingActivity ? 'Kegiatan berhasil diperbarui!' : 'Kegiatan baru berhasil ditambahkan!');
         setIsActivityModalOpen(false);
         setEditingActivity(null);
         setActivityForm({ title: '', author: '', date: new Date().toISOString().split('T')[0], category: 'Edukasi & Informasi', summary: '', content: '', published: true });
         fetchAllData();
       } else {
-        alert(data.error || 'Gagal menyimpan kegiatan.');
+        toast.error(data.error || 'Gagal menyimpan kegiatan.');
       }
     } catch (err) {
       console.error(err);
-      alert('Gagal menyimpan kegiatan.');
+      toast.error('Gagal menyimpan kegiatan.');
     }
   };
 
@@ -404,43 +485,58 @@ export default function AdminDashboardPage() {
   };
 
   // Delete Activity
-  const handleDeleteActivity = async (id: string) => {
-    if (confirm('Apakah Anda yakin ingin menghapus kegiatan ini?')) {
-      try {
-        const res = await fetch(`/api/activities/${id}`, { method: 'DELETE' });
-        const data = await res.json();
-        if (res.ok && data.success) {
-          alert('Kegiatan berhasil dihapus!');
-          fetchAllData();
-        } else {
-          alert(data.error || 'Gagal menghapus kegiatan.');
+  const handleDeleteActivity = (id: string) => {
+    setConfirmModal({
+      isOpen: true,
+      title: 'Hapus Artikel Kegiatan',
+      message: 'Apakah Anda yakin ingin menghapus kegiatan ini? Tindakan ini tidak dapat dibatalkan.',
+      onConfirm: async () => {
+        try {
+          const res = await fetch(`/api/activities/${id}`, { method: 'DELETE' });
+          const data = await res.json();
+          if (res.ok && data.success) {
+            toast.success('Kegiatan berhasil dihapus!');
+            fetchAllData();
+          } else {
+            toast.error(data.error || 'Gagal menghapus kegiatan.');
+          }
+        } catch (err) {
+          console.error(err);
+          toast.error('Gagal menghapus kegiatan.');
         }
-      } catch (err) {
-        console.error(err);
-        alert('Gagal menghapus kegiatan.');
       }
-    }
+    });
   };
 
   // Manual update of order status by Admin
-  const handleUpdateOrderStatus = async (orderId: string, status: string) => {
-    try {
-      const res = await fetch(`/api/admin/orders/${orderId}/status`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status })
-      });
-      const data = await res.json();
-      if (res.ok && data.success) {
-        alert('Status pesanan berhasil diperbarui!');
-        fetchAllData();
-      } else {
-        alert(data.error || 'Gagal memperbarui status pesanan.');
+  const handleUpdateOrderStatus = (orderId: string, status: string) => {
+    setConfirmModal({
+      isOpen: true,
+      title: 'Perbarui Status Pesanan',
+      message: `Apakah Anda yakin ingin memperbarui status pesanan menjadi "${status.toUpperCase()}"?`,
+      onConfirm: async () => {
+        try {
+          const res = await fetch(`/api/admin/orders/${orderId}/status`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status })
+          });
+          const data = await res.json();
+          if (res.ok && data.success) {
+            toast.success('Status pesanan berhasil diperbarui!');
+            fetchAllData();
+            setSelectedOrderDetails((prev: any) =>
+              prev && prev.id === orderId ? { ...prev, status } : prev
+            );
+          } else {
+            toast.error(data.error || 'Gagal memperbarui status pesanan.');
+          }
+        } catch (err) {
+          console.error(err);
+          toast.error('Gagal memperbarui status pesanan.');
+        }
       }
-    } catch (err) {
-      console.error(err);
-      alert('Gagal memperbarui status pesanan.');
-    }
+    });
   };
 
   // Dynamic statistics from live order database
@@ -655,6 +751,18 @@ export default function AdminDashboardPage() {
             >
               <CalendarIcon className="w-5 h-5 shrink-0" />
               <span>Kelola Kegiatan</span>
+            </button>
+
+            {/* Kelola Pesanan Sidebar Button */}
+            <button
+              onClick={() => setActiveMenu('pesanan')}
+              className={`w-full flex items-center gap-3.5 px-4.5 py-3.5 rounded-2xl text-sm font-heading font-extrabold tracking-wide uppercase transition-all duration-300 shrink-0 cursor-pointer ${activeMenu === 'pesanan'
+                ? 'bg-[#345947] text-brand-lime shadow-inner'
+                : 'text-white/70 hover:text-white hover:bg-white/5'
+                }`}
+            >
+              <ClipboardList className="w-5 h-5 shrink-0" />
+              <span>Kelola Pesanan</span>
             </button>
 
           </div>
@@ -979,10 +1087,12 @@ export default function AdminDashboardPage() {
                       name: '',
                       category_id: '',
                       price: '',
+                      discount_price: '',
                       stock: '',
                       description: '',
                       image: '',
-                      pickupMethods: ['Kirim', 'Ambil Sendiri']
+                      pickupMethods: ['Kirim', 'Ambil Sendiri'],
+                      tags: ''
                     });
                     setIsProductModalOpen(true);
                   }}
@@ -1083,7 +1193,20 @@ export default function AdminDashboardPage() {
                           </td>
 
                           <td className="py-4.5 text-xs font-bold text-brand-emerald uppercase tracking-wider">{product.categoryName}</td>
-                          <td className="py-4.5 font-bold">Rp {product.price.toLocaleString('id-ID')}</td>
+                          <td className="py-4.5 text-xs">
+                            {product.discount_price ? (
+                              <div className="flex flex-col">
+                                <span className="text-[10px] text-zinc-400 line-through">
+                                  Rp {product.price.toLocaleString('id-ID')}
+                                </span>
+                                <span className="font-bold text-brand-emerald text-sm">
+                                  Rp {product.discount_price.toLocaleString('id-ID')}
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="font-bold">Rp {product.price.toLocaleString('id-ID')}</span>
+                            )}
+                          </td>
 
                           {/* Stock Status Capsule */}
                           <td className="py-4.5">
@@ -1111,8 +1234,8 @@ export default function AdminDashboardPage() {
 
                           <td className="py-4.5">
                             <div className="flex items-center gap-1 text-xs text-brand-sage font-bold">
-                              <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                              <span>{product.rating}</span>
+                              <Star className={`w-3.5 h-3.5 ${product.rating > 0 ? 'fill-amber-400 text-amber-400' : 'text-zinc-300'}`} />
+                              <span>{product.rating > 0 ? Number(product.rating).toFixed(1) : '0'}</span>
                             </div>
                           </td>
 
@@ -1254,6 +1377,180 @@ export default function AdminDashboardPage() {
             </div>
           )}
 
+          {/* MENU 4: KELOLA PESANAN */}
+          {activeMenu === 'pesanan' && (
+            <div className="space-y-8 text-left animate-fade-in-up">
+
+              {/* Title Section */}
+              <div className="border-b border-[#e2ede7] pb-6 space-y-1">
+                <h1 className="font-heading font-black text-3xl text-brand-forest">
+                  Kelola Pesanan
+                </h1>
+                <p className="text-brand-sage text-sm font-semibold">
+                  Manajemen transaksi, status pembayaran, dan pengiriman produk tanaman
+                </p>
+              </div>
+
+              {/* Status Pill Tabs filter */}
+              <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin select-none">
+                {[
+                  { id: 'all', label: 'Semua', count: orderCounts.all, color: 'border-zinc-200 hover:bg-zinc-50 text-brand-forest' },
+                  { id: 'pending', label: 'Pending', count: orderCounts.pending, color: 'border-amber-200 text-amber-700 bg-amber-50/50 hover:bg-amber-50' },
+                  { id: 'paid', label: 'Lunas', count: orderCounts.paid, color: 'border-emerald-200 text-emerald-700 bg-emerald-50/50 hover:bg-emerald-50' },
+                  { id: 'processing', label: 'Diproses', count: orderCounts.processing, color: 'border-blue-200 text-blue-700 bg-blue-50/50 hover:bg-blue-50' },
+                  { id: 'shipped', label: 'Dikirim', count: orderCounts.shipped, color: 'border-indigo-200 text-indigo-700 bg-indigo-50/50 hover:bg-indigo-50' },
+                  { id: 'completed', label: 'Selesai', count: orderCounts.completed, color: 'border-[#b8d5c5] text-brand-emerald bg-brand-cream/35 hover:bg-brand-cream/60' },
+                  { id: 'canceled', label: 'Batal', count: orderCounts.canceled, color: 'border-rose-200 text-rose-700 bg-rose-50/50 hover:bg-rose-50' },
+                ].map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setSelectedStatusFilter(tab.id)}
+                    className={`flex items-center gap-2 px-5 py-2.5 rounded-full border text-xs font-bold transition-all shrink-0 cursor-pointer ${
+                      selectedStatusFilter === tab.id
+                        ? 'bg-brand-forest text-white border-brand-forest shadow-md scale-102'
+                        : tab.color
+                    }`}
+                  >
+                    <span>{tab.label}</span>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full ${
+                      selectedStatusFilter === tab.id
+                        ? 'bg-white/25 text-white'
+                        : 'bg-brand-cream/80 text-brand-sage border border-[#e2ede7]'
+                    }`}>
+                      {tab.count}
+                    </span>
+                  </button>
+                ))}
+              </div>
+
+              {/* Search filter bar */}
+              <div className="max-w-md">
+                <div className="flex items-center bg-white border border-[#e2ede7] rounded-full py-3 px-5 shadow-sm focus-within:border-brand-emerald transition-colors group">
+                  <input
+                    type="text"
+                    placeholder="Cari ID pesanan, nama kustomer, atau tanaman..."
+                    value={orderSearch}
+                    onChange={(e) => setOrderSearch(e.target.value)}
+                    className="w-full bg-transparent text-sm font-semibold focus:outline-none text-brand-forest placeholder-brand-sage/60"
+                  />
+                  <Search className="w-4.5 h-4.5 text-brand-sage group-focus-within:text-brand-emerald shrink-0" />
+                </div>
+              </div>
+
+              {/* Data Table */}
+              <div className="bg-white rounded-3xl border border-[#e2ede7] shadow-sm overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse">
+                    <thead>
+                      <tr className="border-b border-brand-cream bg-brand-cream/10 text-left text-xs font-bold text-brand-sage uppercase tracking-wider select-none">
+                        <th className="py-4.5 pl-6">ID Pesanan</th>
+                        <th className="py-4.5">Kustomer</th>
+                        <th className="py-4.5">Rincian Belanja</th>
+                        <th className="py-4.5">Tanggal</th>
+                        <th className="py-4.5">Total Bayar</th>
+                        <th className="py-4.5 text-center">Status</th>
+                        <th className="py-4.5 text-center pr-6 w-24">Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-brand-cream/50 text-sm font-semibold text-brand-forest">
+                      {filteredOrders.map((order) => {
+                        const customerName = order.user?.full_name || order.user?.email || 'Guest';
+                        const itemsSummary = order.order_items
+                          ? order.order_items.map((i: any) => `${i.plant_name} (${i.quantity})`).join(', ')
+                          : 'Tanpa Item';
+
+                        return (
+                          <tr key={order.id} className="hover:bg-brand-cream/10 transition-colors">
+                            
+                            {/* ID Pesanan */}
+                            <td className="py-4.5 pl-6 font-heading font-black text-brand-emerald text-xs tracking-wide">
+                              {order.midtrans_order_id || `BM-${order.id.slice(0, 8).toUpperCase()}`}
+                            </td>
+
+                            {/* Customer Profile */}
+                            <td className="py-4.5">
+                              <div className="flex flex-col text-left">
+                                <span className="font-bold text-[#1e3329] text-sm">{customerName}</span>
+                                <span className="text-[10px] text-brand-sage font-medium">{order.user?.email || '-'}</span>
+                              </div>
+                            </td>
+
+                            {/* Ordered Items Summary */}
+                            <td className="py-4.5 max-w-[200px] truncate" title={itemsSummary}>
+                              <span className="text-xs text-brand-sage font-medium leading-relaxed">
+                                {itemsSummary}
+                              </span>
+                            </td>
+
+                            {/* Date */}
+                            <td className="py-4.5 text-xs text-brand-sage font-medium">
+                              {new Date(order.created_at).toLocaleDateString('id-ID', {
+                                day: 'numeric',
+                                month: 'short',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </td>
+
+                            {/* Total Amount */}
+                            <td className="py-4.5 font-bold text-sm">
+                              Rp {order.total_amount.toLocaleString('id-ID')}
+                            </td>
+
+                            {/* Status Change interactive dropdown */}
+                            <td className="py-4.5 text-center">
+                              <select
+                                value={order.status}
+                                onChange={(e) => handleUpdateOrderStatus(order.id, e.target.value)}
+                                className={`text-[10px] font-bold border rounded-full px-3 py-1.5 focus:outline-none cursor-pointer tracking-wider uppercase transition-all ${
+                                  order.status === 'completed'
+                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                    : order.status === 'canceled' || order.status === 'expired'
+                                      ? 'bg-rose-50 text-rose-700 border-rose-200'
+                                      : order.status === 'paid'
+                                        ? 'bg-emerald-600 text-white border-emerald-700 shadow-sm'
+                                        : 'bg-amber-50 text-amber-700 border-amber-200'
+                                }`}
+                              >
+                                <option value="pending">Pending</option>
+                                <option value="paid">Paid (Lunas)</option>
+                                <option value="processing">Processing</option>
+                                <option value="shipped">Shipped</option>
+                                <option value="completed">Completed</option>
+                                <option value="canceled">Canceled</option>
+                                <option value="expired">Expired</option>
+                              </select>
+                            </td>
+
+                            {/* Action Button - view details drawer */}
+                            <td className="py-4.5 text-center pr-6">
+                              <button
+                                onClick={() => setSelectedOrderDetails(order)}
+                                className="p-2.5 rounded-xl border border-zinc-200 hover:bg-brand-cream text-brand-sage hover:text-brand-emerald transition-all cursor-pointer"
+                                title="Lihat Rincian Pesanan"
+                              >
+                                <Eye className="w-4 h-4" />
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                      {filteredOrders.length === 0 && (
+                        <tr>
+                          <td colSpan={7} className="py-12 text-center text-brand-sage font-medium">
+                            Tidak ada data transaksi ditemukan.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+            </div>
+          )}
+
         </main>
       </div>
 
@@ -1346,8 +1643,8 @@ export default function AdminDashboardPage() {
                 </select>
               </div>
 
-              {/* Price & Stock Grid fields */}
-              <div className="grid sm:grid-cols-2 gap-4">
+              {/* Price, Discount & Stock Grid fields */}
+              <div className="grid sm:grid-cols-3 gap-4">
 
                 {/* Price */}
                 <div className="flex flex-col">
@@ -1359,6 +1656,18 @@ export default function AdminDashboardPage() {
                     onChange={(e) => setProductForm(prev => ({ ...prev, price: e.target.value }))}
                     className="w-full px-5 py-3 text-sm border border-zinc-200 rounded-full bg-white text-brand-forest focus:outline-none focus:ring-2 focus:ring-brand-emerald shadow-inner"
                     required
+                  />
+                </div>
+
+                {/* Discount Price */}
+                <div className="flex flex-col">
+                  <label className="text-sm font-semibold text-[#1e3329] mb-1">Harga Diskon (Opsional)</label>
+                  <input
+                    type="number"
+                    placeholder="Misal: 28000"
+                    value={productForm.discount_price}
+                    onChange={(e) => setProductForm(prev => ({ ...prev, discount_price: e.target.value }))}
+                    className="w-full px-5 py-3 text-sm border border-zinc-200 rounded-full bg-white text-brand-forest focus:outline-none focus:ring-2 focus:ring-brand-emerald shadow-inner"
                   />
                 </div>
 
@@ -1424,6 +1733,21 @@ export default function AdminDashboardPage() {
                   onChange={(e) => setProductForm(prev => ({ ...prev, description: e.target.value }))}
                   className="w-full px-5 py-3 text-sm border border-zinc-200 rounded-3xl bg-white text-brand-forest focus:outline-none focus:ring-2 focus:ring-brand-emerald shadow-inner"
                 />
+              </div>
+
+              {/* Tags / Spesifikasi */}
+              <div className="flex flex-col">
+                <label className="text-sm font-semibold text-[#1e3329] mb-1">Tags / Spesifikasi Produk (Pisahkan dengan koma)</label>
+                <input
+                  type="text"
+                  placeholder="Contoh: Tinggi Tanaman: ± 50cm, Metode Perbanyakan: Okulasi"
+                  value={productForm.tags}
+                  onChange={(e) => setProductForm(prev => ({ ...prev, tags: e.target.value }))}
+                  className="w-full px-5 py-3 text-sm border border-zinc-200 rounded-full bg-white text-brand-forest focus:outline-none focus:ring-2 focus:ring-brand-emerald shadow-inner"
+                />
+                <span className="text-[10px] text-brand-sage mt-1 pl-2">
+                  Masukkan spesifikasi produk dipisahkan oleh tanda koma. Tags ini akan otomatis muncul sebagai list "Spesifikasi & Kelebihan" di halaman detail produk.
+                </span>
               </div>
 
               {/* Actions Footer row */}
@@ -1572,6 +1896,223 @@ export default function AdminDashboardPage() {
               </div>
 
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL WINDOW 3: ORDER DETAIL DRAWER MODAL (FROSTED GLASSMORPHISM) */}
+      {selectedOrderDetails && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-md bg-black/40 animate-fade-in text-brand-forest">
+          <div className="bg-white/95 rounded-[36px] border border-white/20 shadow-2xl w-full max-w-2xl overflow-hidden relative animate-scale-up flex flex-col max-h-[90vh]">
+            
+            {/* Modal Header */}
+            <div className="bg-brand-cream border-b border-[#e2ede7] px-8 py-5 flex items-center justify-between shrink-0">
+              <div className="text-left">
+                <h3 className="font-heading font-extrabold text-lg text-[#1e3329]">
+                  Detail Rincian Pesanan
+                </h3>
+                <p className="text-xs text-brand-sage font-medium mt-0.5">
+                  ID: {selectedOrderDetails.midtrans_order_id || selectedOrderDetails.id}
+                </p>
+              </div>
+              <button
+                onClick={() => setSelectedOrderDetails(null)}
+                className="p-1.5 rounded-full hover:bg-brand-lime/20 text-brand-sage hover:text-brand-forest transition-colors cursor-pointer"
+                aria-label="Tutup"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Body (Scrollable content) */}
+            <div className="p-8 space-y-6 overflow-y-auto text-left flex-1">
+              
+              {/* Order Status & Date Info Grid */}
+              <div className="grid sm:grid-cols-2 gap-6 bg-brand-cream/40 rounded-2xl p-5 border border-[#e2ede7]/60">
+                <div className="space-y-1">
+                  <span className="text-[10px] text-brand-sage uppercase font-bold tracking-wider block">Waktu Transaksi</span>
+                  <span className="text-sm font-semibold block">
+                    {new Date(selectedOrderDetails.created_at).toLocaleString('id-ID', {
+                      weekday: 'long',
+                      day: 'numeric',
+                      month: 'long',
+                      year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </span>
+                </div>
+                <div className="space-y-1 sm:text-right">
+                  <span className="text-[10px] text-brand-sage uppercase font-bold tracking-wider block">Status Saat Ini</span>
+                  <span className={`inline-flex items-center justify-center px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border mt-1 ${
+                    selectedOrderDetails.status === 'completed'
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
+                      : selectedOrderDetails.status === 'canceled' || selectedOrderDetails.status === 'expired'
+                        ? 'bg-rose-50 text-rose-700 border-rose-100'
+                        : selectedOrderDetails.status === 'paid'
+                          ? 'bg-emerald-600 text-white border-emerald-700'
+                          : 'bg-amber-50 text-amber-700 border-amber-100'
+                  }`}>
+                    {selectedOrderDetails.status}
+                  </span>
+                </div>
+              </div>
+
+              {/* Customer Profile & Info */}
+              <div className="space-y-3.5">
+                <h4 className="font-heading font-extrabold text-sm text-[#1e3329] uppercase tracking-wider border-b border-[#e2ede7] pb-1.5 flex items-center gap-2">
+                  <User className="w-4 h-4 text-brand-emerald" />
+                  Informasi Pelanggan & Pengiriman
+                </h4>
+                <div className="grid sm:grid-cols-2 gap-4 text-xs font-semibold leading-relaxed">
+                  <div>
+                    <span className="text-brand-sage font-medium block">Nama Penerima:</span>
+                    <span>{selectedOrderDetails.user?.full_name || 'Guest'}</span>
+                  </div>
+                  <div>
+                    <span className="text-brand-sage font-medium block">Email:</span>
+                    <span>{selectedOrderDetails.user?.email || '-'}</span>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <span className="text-brand-sage font-medium block">Metode Pengambilan:</span>
+                    <span className="inline-block text-[10px] font-bold uppercase tracking-wider text-[#223e30] bg-[#eaf4ee] px-2.5 py-0.5 rounded border border-[#daebd3] mt-0.5">
+                      {selectedOrderDetails.notes && selectedOrderDetails.notes.toLowerCase().includes('ambil') ? 'Ambil Sendiri di Toko' : 'Kirim / Delivery'}
+                    </span>
+                  </div>
+                  {selectedOrderDetails.notes && (
+                    <div className="sm:col-span-2 bg-brand-cream/30 border border-[#e2ede7]/40 rounded-xl p-3.5 mt-1.5">
+                      <span className="text-brand-sage font-medium block mb-1">Catatan Tambahan:</span>
+                      <p className="text-xs text-brand-forest italic bg-white/70 rounded-lg p-2.5 border border-[#e2ede7]/30">
+                        "{selectedOrderDetails.notes}"
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Ordered Plants Checklist Section */}
+              <div className="space-y-4">
+                <h4 className="font-heading font-extrabold text-sm text-[#1e3329] uppercase tracking-wider border-b border-[#e2ede7] pb-1.5 flex items-center gap-2">
+                  <ShoppingBag className="w-4 h-4 text-brand-emerald" />
+                  Daftar Tanaman yang Dipesan
+                </h4>
+                <div className="space-y-3.5">
+                  {selectedOrderDetails.order_items?.map((item: any) => (
+                    <div key={item.id} className="flex gap-4 pb-3.5 border-b border-[#e2ede7]/50 last:border-0 last:pb-0 items-center">
+                      <div className="w-14 h-14 rounded-xl bg-brand-cream border border-[#e2ede7] flex-shrink-0 overflow-hidden flex items-center justify-center relative">
+                        {item.plant?.image_url ? (
+                          <img src={item.plant.image_url} alt={item.plant_name} className="w-full h-full object-cover" />
+                        ) : (
+                          <ImageIcon className="w-5 h-5 text-brand-sage" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0 text-xs font-semibold">
+                        <p className="font-bold text-sm text-[#1e3329] truncate">{item.plant_name}</p>
+                        <p className="text-brand-sage mt-0.5">
+                          Rp {item.price_at_purchase.toLocaleString('id-ID')} × {item.quantity}
+                        </p>
+                      </div>
+                      <div className="text-right text-xs font-bold text-[#1e3329]">
+                        Rp {(item.price_at_purchase * item.quantity).toLocaleString('id-ID')}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Grand Total */}
+              <div className="pt-4 border-t border-[#e2ede7] flex justify-between items-center">
+                <span className="font-heading font-extrabold text-sm uppercase tracking-wider text-brand-sage">Total Tagihan</span>
+                <span className="text-2xl font-black text-brand-emerald">
+                  Rp {selectedOrderDetails.total_amount.toLocaleString('id-ID')}
+                </span>
+              </div>
+
+            </div>
+
+            {/* Modal Actions Footer */}
+            <div className="bg-brand-cream border-t border-[#e2ede7] px-8 py-5 flex flex-col sm:flex-row gap-4 items-center justify-between shrink-0">
+              
+              {/* Quick Status Update inside the Modal */}
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <span className="text-xs font-bold text-brand-sage">Ubah Status:</span>
+                <select
+                  value={selectedOrderDetails.status}
+                  onChange={(e) => {
+                    handleUpdateOrderStatus(selectedOrderDetails.id, e.target.value);
+                  }}
+                  className={`text-[10px] font-bold border rounded-full px-3 py-1.5 focus:outline-none cursor-pointer tracking-wider uppercase bg-white ${
+                    selectedOrderDetails.status === 'completed'
+                      ? 'text-emerald-700 border-emerald-200'
+                      : selectedOrderDetails.status === 'canceled' || selectedOrderDetails.status === 'expired'
+                        ? 'text-rose-700 border-rose-200'
+                        : selectedOrderDetails.status === 'paid'
+                          ? 'text-emerald-600 border-emerald-500'
+                          : 'text-amber-700 border-amber-200'
+                  }`}
+                >
+                  <option value="pending">Pending</option>
+                  <option value="paid">Paid (Lunas)</option>
+                  <option value="processing">Processing</option>
+                  <option value="shipped">Shipped</option>
+                  <option value="completed">Completed</option>
+                  <option value="canceled">Canceled</option>
+                  <option value="expired">Expired</option>
+                </select>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setSelectedOrderDetails(null)}
+                className="w-full sm:w-auto px-8 py-2.5 rounded-full bg-brand-forest hover:bg-brand-emerald text-white text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer shadow-sm text-center"
+              >
+                Tutup Detail
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CONFIRMATION MODAL */}
+      {confirmModal && confirmModal.isOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#1e3329]/40 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-[36px] border border-[#e2ede7] shadow-2xl p-6 sm:p-8 max-w-sm w-full animate-scale-in text-brand-forest">
+            
+            {/* Warning Icon */}
+            <div className="w-16 h-16 rounded-full bg-rose-50 flex items-center justify-center text-rose-600 mx-auto mb-4 border border-rose-100">
+              <ShieldAlert className="w-8 h-8" />
+            </div>
+
+            {/* Title & Desc */}
+            <h3 className="font-heading font-black text-xl text-center text-[#1e3329]">
+              {confirmModal.title}
+            </h3>
+            <p className="text-xs text-brand-sage text-center mt-2.5 leading-relaxed font-semibold">
+              {confirmModal.message}
+            </p>
+
+            {/* Action Buttons */}
+            <div className="flex gap-3 mt-6">
+              <button
+                type="button"
+                onClick={() => {
+                  setConfirmModal(null);
+                }}
+                className="flex-1 py-3.5 rounded-full border border-zinc-200 text-brand-sage hover:bg-brand-cream/40 hover:text-brand-forest font-bold text-xs uppercase tracking-widest transition-all cursor-pointer text-center"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  confirmModal.onConfirm();
+                  setConfirmModal(null);
+                }}
+                className="flex-1 py-3.5 rounded-full bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs uppercase tracking-widest transition-all cursor-pointer text-center shadow-md shadow-rose-600/10"
+              >
+                Konfirmasi
+              </button>
+            </div>
           </div>
         </div>
       )}

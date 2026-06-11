@@ -4,7 +4,6 @@ import React, { useState, useMemo, useEffect } from 'react';
 import {
   Search,
   ShoppingBag,
-  Heart,
   ArrowLeft,
   Calendar,
   User,
@@ -26,6 +25,7 @@ import Link from 'next/link';
 import NextImage from 'next/image';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
+import { toast } from 'sonner';
 
 // Mock Activities Database matching mockup structure
 const ACTIVITIES = [
@@ -272,20 +272,20 @@ export default function KegiatanPage() {
       const data = await res.json();
       if (res.ok && data.success) {
         setEditForm(prev => ({ ...prev, image: data.data.publicUrl }));
-        alert('Gambar artikel berhasil diunggah!');
+        toast.success('Gambar artikel berhasil diunggah!');
       } else {
-        alert(data.error || 'Gagal mengunggah gambar.');
+        toast.error(data.error || 'Gagal mengunggah gambar.');
       }
     } catch (err) {
       console.error('Image upload error:', err);
-      alert('Terjadi kesalahan saat mengunggah gambar.');
+      toast.error('Terjadi kesalahan saat mengunggah gambar.');
     }
   };
 
   // Save edited article to database
   const handleSaveArticle = async () => {
     if (!editForm.title || !editForm.author || !editForm.content) {
-      alert('Judul, Penulis, dan Isi Artikel wajib diisi!');
+      toast.warning('Judul, Penulis, dan Isi Artikel wajib diisi!');
       return;
     }
 
@@ -336,13 +336,13 @@ export default function KegiatanPage() {
         setActivitiesList(prev => prev.map(a => a.id === selectedActivity!.id ? updatedActivity : a));
         setSelectedActivity(updatedActivity);
         setIsEditing(false);
-        alert('Artikel berhasil disimpan ke database!');
+        toast.success('Artikel berhasil disimpan ke database!');
       } else {
-        alert(resData.error || 'Gagal menyimpan artikel.');
+        toast.error(resData.error || 'Gagal menyimpan artikel.');
       }
     } catch (err) {
       console.error('Error saving article:', err);
-      alert('Terjadi kesalahan saat menghubungi server.');
+      toast.error('Terjadi kesalahan saat menghubungi server.');
     }
   };
 
@@ -493,7 +493,7 @@ export default function KegiatanPage() {
                       onClick={(e) => {
                         e.stopPropagation();
                         toggleBookmark(activity.id);
-                        alert(wishlist[activity.id] ? 'Dihapus dari simpanan!' : 'Berhasil disimpan!');
+                        toast.success(wishlist[activity.id] ? 'Dihapus dari simpanan!' : 'Berhasil disimpan!');
                       }}
                       className="w-8 h-8 rounded-full bg-white/90 hover:bg-white shadow-sm flex items-center justify-center text-zinc-400 hover:text-brand-emerald transition-colors cursor-pointer"
                       aria-label="Simpan Artikel"
@@ -798,7 +798,7 @@ export default function KegiatanPage() {
                 <button
                   onClick={() => {
                     toggleBookmark(selectedActivity.id);
-                    alert(wishlist[selectedActivity.id] ? 'Dihapus dari simpanan!' : 'Berhasil disimpan!');
+                    toast.success(wishlist[selectedActivity.id] ? 'Dihapus dari simpanan!' : 'Berhasil disimpan!');
                   }}
                   className="p-2.5 rounded-full border border-[#e2ede7] hover:bg-brand-cream text-brand-sage hover:text-brand-forest transition-all cursor-pointer"
                   aria-label="Simpan"
@@ -806,7 +806,7 @@ export default function KegiatanPage() {
                   <Bookmark className={`w-4.5 h-4.5 ${wishlist[selectedActivity.id] ? 'fill-brand-emerald text-brand-emerald' : ''}`} />
                 </button>
                 <button
-                  onClick={() => alert('Fitur bagikan sedang disiapkan!')}
+                  onClick={() => toast.info('Fitur bagikan sedang disiapkan!')}
                   className="p-2.5 rounded-full border border-[#e2ede7] hover:bg-brand-cream text-brand-sage hover:text-brand-forest transition-all cursor-pointer"
                   aria-label="Bagikan"
                 >

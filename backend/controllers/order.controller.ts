@@ -1,5 +1,6 @@
 import {
   checkout,
+  checkoutDemo,
   getUserOrders,
   getOrder,
   getAllOrders,
@@ -37,6 +38,34 @@ export async function handleCheckout(
     data: {
       orderId: result.orderId,
       snapToken: result.snapToken,
+    },
+  });
+}
+
+export async function handleCheckoutDemo(
+  userId: string,
+  userEmail: string,
+  userName: string | null,
+  body: { notes?: string }
+): Promise<Response> {
+  const result = await checkoutDemo({
+    userId,
+    userEmail,
+    userName,
+    notes: body.notes,
+  });
+
+  if (!result.success) {
+    return Response.json(
+      { success: false, error: result.error },
+      { status: 400 }
+    );
+  }
+
+  return Response.json({
+    success: true,
+    data: {
+      orderId: result.orderId,
     },
   });
 }

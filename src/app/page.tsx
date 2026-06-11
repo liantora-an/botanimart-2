@@ -1,16 +1,16 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Leaf,
   Search,
   ShoppingBag,
   MapPin,
+  Phone,
   ChevronLeft,
   ChevronRight,
   Star,
-  Heart,
   ArrowRight,
   ExternalLink,
   Calendar,
@@ -29,6 +29,36 @@ import Link from 'next/link';
 import NextImage from 'next/image';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
+import { toast } from 'sonner';
+
+// Helper functions for dynamic pricing and formatting
+function formatRupiah(n: number): string {
+  return 'Rp ' + n.toLocaleString('id-ID');
+}
+
+const getCategoryGradient = (categoryName: string) => {
+  const name = categoryName ? categoryName.toLowerCase() : '';
+  if (name.includes('buah')) return 'from-[#e8f5e9] to-[#c8e6c9]'; // green
+  if (name.includes('pupuk') || name.includes('cair')) return 'from-[#e1f5fe] to-[#b3e5fc]'; // blue
+  if (name.includes('pot') || name.includes('alat')) return 'from-[#efebe9] to-[#d7ccc8]'; // brown
+  if (name.includes('hias') || name.includes('bunga')) return 'from-[#fce4ec] to-[#f8bbd0]'; // pink
+  if (name.includes('media')) return 'from-[#f1f8e9] to-[#dcedc8]'; // light green
+  return 'from-[#e2ede7] to-[#b8d5c5]'; // default
+};
+
+const getCategoryName = (category: any) => {
+  if (category && typeof category === 'object') {
+    return category.name;
+  }
+  return String(category || 'Tanaman');
+};
+
+const renderPrice = (price: any) => {
+  if (typeof price === 'number') {
+    return formatRupiah(price);
+  }
+  return String(price);
+};
 
 // Mock Categories
 const CATEGORIES = [
@@ -42,7 +72,7 @@ const CATEGORIES = [
 ];
 
 // Mock Products
-const BEST_SELLERS = [
+const MOCK_BEST_SELLERS = [
   {
     id: 101,
     name: 'Bibit Buah Mangga',
@@ -73,7 +103,7 @@ const BEST_SELLERS = [
 ];
 
 // Mock Activities
-const LATEST_ACTIVITIES = [
+const MOCK_LATEST_ACTIVITIES = [
   {
     id: 201,
     title: 'Sambutan Rektor di Botani Mart',
@@ -94,12 +124,56 @@ export default function HomePage() {
   const router = useRouter();
 
   // Stateful states for interactivity
-  const [wishlist, setWishlist] = useState<Record<number, boolean>>({});
   const [currentGalleryIndex, setCurrentGalleryIndex] = useState(0);
-  const [addingToCart, setAddingToCart] = useState<number | null>(null);
+  const [addingToCart, setAddingToCart] = useState<string | number | null>(null);
+
+  // Real Dynamic Backend States
+  const [bestSellers, setBestSellers] = useState<any[]>([]);
+  const [latestActivities, setLatestActivities] = useState<any[]>([]);
+  const [loadingProducts, setLoadingProducts] = useState(true);
+  const [loadingActivities, setLoadingActivities] = useState(true);
+
+  const fetchProducts = useCallback(async () => {
+    try {
+      const res = await fetch('/api/catalog?limit=3&sort=popular');
+      const data = await res.json();
+      if (data.success && data.data && data.data.data && data.data.data.length > 0) {
+        setBestSellers(data.data.data);
+      } else {
+        setBestSellers(MOCK_BEST_SELLERS);
+      }
+    } catch (err) {
+      console.error('Failed to fetch best sellers:', err);
+      setBestSellers(MOCK_BEST_SELLERS);
+    } finally {
+      setLoadingProducts(false);
+    }
+  }, []);
+
+  const fetchActivities = useCallback(async () => {
+    try {
+      const res = await fetch('/api/activities');
+      const data = await res.json();
+      if (data.success && data.data && data.data.data && data.data.data.length > 0) {
+        setLatestActivities(data.data.data.slice(0, 2));
+      } else {
+        setLatestActivities(MOCK_LATEST_ACTIVITIES);
+      }
+    } catch (err) {
+      console.error('Failed to fetch latest activities:', err);
+      setLatestActivities(MOCK_LATEST_ACTIVITIES);
+    } finally {
+      setLoadingActivities(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchProducts();
+    fetchActivities();
+  }, [fetchProducts, fetchActivities]);
 
   // Real add-to-cart via API
-  const addToCart = useCallback(async (productId: number, productName: string) => {
+  const addToCart = useCallback(async (productId: string | number, productName: string) => {
     setAddingToCart(productId);
     try {
       const res = await fetch('/api/cart', {
@@ -111,19 +185,31 @@ export default function HomePage() {
       const data = await res.json();
       if (data.success) {
         window.dispatchEvent(new Event('cart-updated'));
-        alert(`${productName} berhasil ditambahkan ke keranjang!`);
+        toast.success(`${productName} berhasil ditambahkan ke keranjang!`);
       } else {
-        alert(data.error || 'Gagal menambahkan ke keranjang.');
+        toast.error(data.error || 'Gagal menambahkan ke keranjang.');
       }
-    } catch { alert('Terjadi kesalahan jaringan.'); }
+    } catch { toast.error('Terjadi kesalahan jaringan.'); }
     finally { setAddingToCart(null); }
   }, [router]);
 
   // Gallery slider titles
   const galleryItems = [
-    { title: 'Nursery Utama Botani Mart', desc: 'Ratusan varietas bibit buah siap tanam dipelihara oleh tenaga ahli.' },
-    { title: 'Proses Pembibitan Modern', desc: 'Pengembangan teknologi vegetatif untuk menghasilkan pohon buah unggulan.' },
-    { title: 'Layanan Konsultasi Berkebun', desc: 'Tim kami siap membantu merekomendasikan pupuk dan media yang tepat.' }
+    { 
+      title: 'Tani Center IPB University', 
+      desc: 'Kolaborasi strategis Botani Mart dengan IPB Tani Center untuk memajukan pertanian Indonesia.',
+      image: '/images/gallery_1.png'
+    },
+    { 
+      title: 'Peresmian & Pembukaan Gerai', 
+      desc: 'Sambutan resmi peresmian gerai hortikultura Botani Mart di Bogor.',
+      image: '/images/gallery_2.png'
+    },
+    { 
+      title: 'Tim Ahli Botani Mart IPB', 
+      desc: 'Kebersamaan tim pengembang dan akademisi IPB dalam menyokong produk berkualitas.',
+      image: '/images/gallery_3.png'
+    }
   ];
 
   const handleNextGallery = () => {
@@ -132,10 +218,6 @@ export default function HomePage() {
 
   const handlePrevGallery = () => {
     setCurrentGalleryIndex((prev) => (prev - 1 + galleryItems.length) % galleryItems.length);
-  };
-
-  const toggleWishlist = (id: number) => {
-    setWishlist(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
   return (
@@ -180,32 +262,29 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Hero Right Visual Column (Premium CSS Placeholder) */}
+          {/* Hero Right Visual Column (Premium store image) */}
           <div className="lg:col-span-5 relative w-full h-80 sm:h-96 lg:h-[450px] rounded-3xl overflow-hidden shadow-2xl border border-white/40 group">
 
             {/* Visual Glass Overlay */}
-            <div className="absolute inset-0 bg-gradient-to-tr from-brand-forest/90 via-brand-emerald/70 to-transparent z-10" />
+            <div className="absolute inset-0 bg-gradient-to-t from-brand-forest/60 via-transparent to-black/10 z-10" />
 
-            {/* Elegant SVG Graphic to replace actual image */}
-            <div className="absolute inset-0 bg-[#345947] flex flex-col items-center justify-center text-white/90 p-8 text-center select-none overflow-hidden">
-              <div className="absolute w-[180%] h-[180%] border border-white/5 rounded-full animate-[spin_100s_linear_infinite]" />
-              <div className="absolute w-[120%] h-[120%] border border-white/10 rounded-full animate-[spin_60s_linear_infinite]" />
+            <NextImage
+              src="/images/botani_mart_storefront.jpg"
+              alt="Botani Mart Storefront"
+              fill
+              className="object-cover group-hover:scale-105 transition-transform duration-700"
+              sizes="(max-w-7xl) 33vw, 100vw"
+              priority
+            />
 
-              <div className="z-20 flex flex-col items-center max-w-sm space-y-4">
-                <div className="w-20 h-20 rounded-full bg-white/15 backdrop-blur-md flex items-center justify-center border border-white/20 animate-pulse">
-                  <ImageIcon className="w-9 h-9 text-brand-lime" />
-                </div>
-                <h3 className="font-heading font-extrabold text-2xl tracking-wide">
-                  Tampilan Gambar Menyusul
-                </h3>
-                <p className="text-xs text-white/70 leading-relaxed font-medium">
-                  Bagian latar belakang ini akan digantikan oleh foto nursery asri Botani Mart setelah berkas diunggah.
-                </p>
-                <div className="flex gap-2">
-                  <span className="text-[10px] font-bold tracking-widest uppercase bg-brand-lime/20 text-brand-lime px-3 py-1 rounded-full border border-brand-lime/10">100% Organik</span>
-                  <span className="text-[10px] font-bold tracking-widest uppercase bg-brand-lime/20 text-brand-lime px-3 py-1 rounded-full border border-brand-lime/10">Bogor</span>
-                </div>
-              </div>
+            {/* Badge overlay on top of the image */}
+            <div className="absolute top-4 right-4 z-20 flex gap-2">
+              <span className="text-[10px] font-extrabold tracking-widest uppercase bg-brand-emerald/90 backdrop-blur-sm text-white px-3 py-1.5 rounded-full border border-white/10 shadow-md">
+                100% Organik
+              </span>
+              <span className="text-[10px] font-extrabold tracking-widest uppercase bg-brand-emerald/90 backdrop-blur-sm text-white px-3 py-1.5 rounded-full border border-white/10 shadow-md">
+                Bogor
+              </span>
             </div>
           </div>
 
@@ -292,48 +371,47 @@ export default function HomePage() {
                 </div>
               </div>
 
-              <a
-                href="https://wa.me/6281110631132"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-start gap-4 hover:opacity-85 transition-opacity"
-              >
-                <div className="w-10 h-10 rounded-full bg-[#25d366]/10 flex items-center justify-center text-[#25d366] shrink-0">
-                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.455L0 24zm6.59-4.846c1.66.986 3.288 1.498 4.885 1.503 5.485.002 9.948-4.436 9.951-9.886.002-2.641-1.02-5.124-2.877-6.984C16.691 1.928 14.22 1.91 12.012 1.91 6.524 1.91 2.06 6.348 2.057 11.8.055 13.526.564 15.223 1.56 16.892l-.997 3.637 3.734-.969a9.7 9.7 0 001.35.59z" />
-                  </svg>
+              <div className="flex items-start gap-4">
+                <div className="w-10 h-10 rounded-full bg-brand-cream flex items-center justify-center text-brand-emerald shrink-0">
+                  <Phone className="w-5 h-5" />
                 </div>
                 <div>
-                  <h4 className="font-bold text-[#1e3329] text-sm">Hubungi Kami (WhatsApp)</h4>
-                  <p className="text-xs text-brand-sage font-medium mt-0.5">081110631132</p>
+                  <h4 className="font-bold text-[#1e3329] text-sm">Hubungi Kami</h4>
+                  <p className="text-xs text-brand-sage font-medium mt-0.5">+62 251-862-2000 (Toko Resmi)</p>
                 </div>
-              </a>
+              </div>
             </div>
           </div>
 
-          {/* Right Column - Galeri/Carousel Placeholder */}
-          <div className="relative rounded-3xl overflow-hidden shadow-xl border border-[#e2ede7] h-80 sm:h-96 flex flex-col bg-brand-cream">
+          {/* Right Column - Galeri/Carousel */}
+          <div className="relative rounded-3xl overflow-hidden shadow-xl border border-[#e2ede7] h-80 sm:h-96 flex flex-col bg-brand-cream group">
 
             {/* Carousel Item Display */}
-            <div className="flex-1 relative flex items-center justify-center p-8 text-center text-brand-forest">
+            <div className="flex-1 relative flex items-end justify-center p-8 text-center text-white">
 
-              {/* Graphic background */}
-              <div className="absolute inset-0 bg-gradient-to-br from-[#c8e6c9]/40 to-[#b3e5fc]/30 z-0" />
+              {/* Real Image Background */}
+              <NextImage
+                src={galleryItems[currentGalleryIndex].image}
+                alt={galleryItems[currentGalleryIndex].title}
+                fill
+                className="object-cover group-hover:scale-102 transition-transform duration-700"
+                sizes="(max-w-7xl) 33vw, 100vw"
+              />
+
+              {/* Graphic Overlay for text readability */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent z-10" />
 
               {/* Overlay Content */}
-              <div className="z-10 flex flex-col items-center space-y-4 max-w-sm">
-                <div className="w-16 h-16 rounded-full bg-white flex items-center justify-center text-brand-emerald shadow-md">
-                  <ImageIcon className="w-7 h-7" />
-                </div>
-                <div className="space-y-1.5">
-                  <h4 className="font-heading font-extrabold text-lg text-brand-forest">
+              <div className="z-20 flex flex-col items-center space-y-2 max-w-[280px] mt-auto">
+                <div className="space-y-1 text-center">
+                  <h4 className="font-heading font-black text-sm text-white tracking-wide">
                     {galleryItems[currentGalleryIndex].title}
                   </h4>
-                  <p className="text-xs text-brand-sage leading-relaxed font-medium">
+                  <p className="text-[10px] text-white/80 leading-relaxed font-medium">
                     {galleryItems[currentGalleryIndex].desc}
                   </p>
                 </div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-brand-emerald/75 bg-brand-emerald/10 px-3 py-1 rounded-full border border-brand-emerald/10">
+                <span className="text-[8px] font-bold uppercase tracking-wider text-brand-lime bg-white/5 px-2.5 py-0.5 rounded-full border border-white/5 backdrop-blur-sm">
                   Slide {currentGalleryIndex + 1} dari {galleryItems.length}
                 </span>
               </div>
@@ -346,14 +424,14 @@ export default function HomePage() {
               <div className="flex gap-2">
                 <button
                   onClick={handlePrevGallery}
-                  className="w-10 h-10 rounded-full border border-[#e2ede7] hover:bg-brand-cream flex items-center justify-center text-brand-sage hover:text-brand-forest transition-colors"
+                  className="w-10 h-10 rounded-full border border-[#e2ede7] hover:bg-brand-cream flex items-center justify-center text-brand-sage hover:text-brand-forest transition-colors cursor-pointer"
                   aria-label="Foto Sebelumnya"
                 >
                   <ChevronLeft className="w-5 h-5" />
                 </button>
                 <button
                   onClick={handleNextGallery}
-                  className="w-10 h-10 rounded-full border border-[#e2ede7] hover:bg-brand-cream flex items-center justify-center text-brand-sage hover:text-brand-forest transition-colors"
+                  className="w-10 h-10 rounded-full border border-[#e2ede7] hover:bg-brand-cream flex items-center justify-center text-brand-sage hover:text-brand-forest transition-colors cursor-pointer"
                   aria-label="Foto Selanjutnya"
                 >
                   <ChevronRight className="w-5 h-5" />
@@ -521,58 +599,79 @@ export default function HomePage() {
 
           {/* Grid of 3 Product Cards */}
           <div className="grid md:grid-cols-3 gap-8">
-            {BEST_SELLERS.map((product) => (
+            {bestSellers.map((product) => (
               <div
                 key={product.id}
                 className="bg-white rounded-3xl border border-[#e2ede7] overflow-hidden shadow-md hover:shadow-2xl transition-all duration-300 flex flex-col group relative"
               >
 
-                {/* Wishlist Icon */}
-                <button
-                  onClick={() => toggleWishlist(product.id)}
-                  className="absolute top-4 right-4 z-20 w-9 h-9 rounded-full bg-white/80 hover:bg-white shadow-sm flex items-center justify-center text-zinc-400 hover:text-red-500 transition-colors"
-                  aria-label="Tambah ke Favorit"
-                >
-                  <Heart
-                    className={`w-4.5 h-4.5 transition-all ${wishlist[product.id] ? 'fill-red-500 text-red-500 scale-110' : 'text-zinc-400'}`}
-                  />
-                </button>
+                {/* Discount Badge */}
+                {product.discount_price && (
+                  <div className="absolute top-4 left-4 z-20 px-3 py-1.5 rounded-full bg-rose-600 text-white font-extrabold text-[10px] uppercase tracking-wider shadow-md">
+                    Diskon {Math.round(((product.price - product.discount_price) / product.price) * 100)}%
+                  </div>
+                )}
 
                 {/* Product Image Placeholder Grid */}
-                <div className={`h-64 bg-gradient-to-br ${product.gradient} flex items-center justify-center relative select-none overflow-hidden border-b border-brand-cream`}>
-                  <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                  <div className="flex flex-col items-center space-y-2 z-10 text-brand-forest/70">
-                    <div className="w-12 h-12 rounded-full bg-white/60 flex items-center justify-center shadow-inner">
-                      <Leaf className="w-6 h-6 text-brand-emerald" />
+                <div className="h-64 relative select-none overflow-hidden border-b border-[#e2ede7] bg-brand-cream">
+                  {product.image_url ? (
+                    <NextImage
+                      src={product.image_url}
+                      alt={product.name}
+                      fill
+                      sizes="(max-w-7xl) 33vw, 100vw"
+                      className="object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                  ) : (
+                    <div className={`absolute inset-0 bg-gradient-to-br ${product.gradient || getCategoryGradient(getCategoryName(product.category))} flex items-center justify-center`}>
+                      <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                      <div className="flex flex-col items-center space-y-2 z-10 text-brand-forest/70">
+                        <div className="w-12 h-12 rounded-full bg-white/60 flex items-center justify-center shadow-inner">
+                          <Leaf className="w-6 h-6 text-brand-emerald" />
+                        </div>
+                        <span className="text-[10px] font-extrabold uppercase tracking-wider bg-brand-emerald/10 text-brand-emerald px-2 py-0.5 rounded border border-brand-emerald/5">
+                          {getCategoryName(product.category)}
+                        </span>
+                      </div>
                     </div>
-                    <span className="text-[10px] font-extrabold uppercase tracking-wider bg-brand-emerald/10 text-brand-emerald px-2 py-0.5 rounded border border-brand-emerald/5">
-                      {product.category}
-                    </span>
-                  </div>
+                  )}
                 </div>
 
                 {/* Details Section */}
                 <div className="p-6 flex-1 flex flex-col text-left space-y-3">
                   <div className="space-y-1">
                     <span className="text-[10px] font-bold text-brand-sage tracking-wider uppercase">
-                      {product.category}
+                      {getCategoryName(product.category)}
                     </span>
-                    <h3 className="font-heading font-extrabold text-lg text-brand-forest group-hover:text-brand-emerald transition-colors">
+                    <h3 className="font-heading font-extrabold text-lg text-brand-forest group-hover:text-brand-emerald transition-colors truncate">
                       {product.name}
                     </h3>
                   </div>
 
                   {/* Price */}
-                  <div className="text-base font-bold text-brand-emerald">
-                    {product.price}
+                  <div className="flex items-center gap-2">
+                    {product.discount_price ? (
+                      <>
+                        <span className="text-xs font-bold text-zinc-400 line-through">
+                          {renderPrice(product.price)}
+                        </span>
+                        <span className="text-base font-black text-brand-emerald">
+                          {renderPrice(product.discount_price)}
+                        </span>
+                      </>
+                    ) : (
+                      <div className="text-base font-black text-brand-emerald">
+                        {renderPrice(product.price)}
+                      </div>
+                    )}
                   </div>
 
                   {/* Rating block */}
                   <div className="flex items-center gap-1.5 text-xs text-brand-sage font-semibold">
                     <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
-                    <span>{product.rating}</span>
+                    <span>{product.rating_avg !== undefined ? product.rating_avg : (product.rating || 0)}</span>
                     <span className="text-zinc-300 font-normal">|</span>
-                    <span>({product.reviews} ulasan)</span>
+                    <span>({product.rating_count !== undefined ? product.rating_count : (product.reviews || 0)} ulasan)</span>
                   </div>
 
                   {/* Actions Bar */}
@@ -580,7 +679,7 @@ export default function HomePage() {
                     <button
                       onClick={() => addToCart(product.id, product.name)}
                       disabled={addingToCart === product.id}
-                      className="w-12 h-12 rounded-2xl border border-[#e2ede7] hover:bg-brand-cream text-brand-emerald flex items-center justify-center transition-colors shrink-0 cursor-pointer"
+                      className="w-12 h-12 rounded-2xl border border-[#e2ede7] hover:bg-brand-cream text-brand-emerald flex items-center justify-center transition-colors shrink-0 cursor-pointer disabled:opacity-50"
                       aria-label="Tambahkan ke Keranjang"
                     >
                       <Plus className="w-5 h-5" />
@@ -598,12 +697,12 @@ export default function HomePage() {
                           if (res.status === 401) { router.push('/login?from=/'); return; }
                           const data = await res.json();
                           if (data.success) router.push('/checkout');
-                          else alert(data.error || 'Gagal.');
-                        } catch { alert('Terjadi kesalahan jaringan.'); }
+                          else toast.error(data.error || 'Gagal.');
+                        } catch { toast.error('Terjadi kesalahan jaringan.'); }
                         finally { setAddingToCart(null); }
                       }}
                       disabled={addingToCart === product.id}
-                      className="flex-1 py-3 rounded-2xl bg-brand-forest hover:bg-brand-emerald text-white text-xs font-bold tracking-wider uppercase transition-all duration-300 cursor-pointer text-center"
+                      className="flex-1 py-3 rounded-2xl bg-brand-forest hover:bg-brand-emerald text-white text-xs font-bold tracking-wider uppercase transition-all duration-300 cursor-pointer text-center disabled:opacity-50"
                     >
                       Beli Sekarang
                     </button>
@@ -646,7 +745,7 @@ export default function HomePage() {
 
           {/* 2 News Cards */}
           <div className="grid md:grid-cols-2 gap-8">
-            {LATEST_ACTIVITIES.map((activity) => (
+            {latestActivities.map((activity) => (
               <div
                 key={activity.id}
                 className="bg-white/5 rounded-3xl border border-white/10 hover:border-white/20 p-6 sm:p-8 text-left hover:bg-white/[0.08] transition-all duration-300 flex flex-col sm:flex-row gap-6"
@@ -654,8 +753,20 @@ export default function HomePage() {
 
                 {/* News Image/Banner Graphic Placeholder */}
                 <div className="w-full sm:w-32 h-32 rounded-2xl bg-white/10 border border-white/10 flex items-center justify-center shrink-0 overflow-hidden relative select-none">
-                  <div className="absolute inset-0 bg-gradient-to-br from-brand-lime/20 to-transparent" />
-                  <Leaf className="w-7 h-7 text-brand-lime opacity-75" />
+                  {activity.image_url || activity.image ? (
+                    <NextImage
+                      src={activity.image_url || activity.image}
+                      alt={activity.title}
+                      fill
+                      sizes="(max-w-7xl) 33vw, 100vw"
+                      className="object-cover"
+                    />
+                  ) : (
+                    <>
+                      <div className="absolute inset-0 bg-gradient-to-br from-brand-lime/20 to-transparent" />
+                      <Leaf className="w-7 h-7 text-brand-lime opacity-75" />
+                    </>
+                  )}
                 </div>
 
                 {/* Content info */}
@@ -663,26 +774,26 @@ export default function HomePage() {
                   <div className="space-y-1">
                     <div className="flex items-center gap-1.5 text-xs text-brand-lime font-bold">
                       <Calendar className="w-3.5 h-3.5" />
-                      <span>{activity.date}</span>
+                      <span>{activity.created_at ? new Date(activity.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'numeric', year: 'numeric' }) : activity.date}</span>
                       <span>•</span>
-                      <span>{activity.location}</span>
+                      <span>{activity.location || 'Bogor, Dramaga'}</span>
                     </div>
 
-                    <h3 className="font-heading font-extrabold text-lg text-white">
+                    <h3 className="font-heading font-extrabold text-lg text-white line-clamp-2">
                       {activity.title}
                     </h3>
                   </div>
 
-                  <p className="text-xs text-white/70 leading-relaxed font-medium">
+                  <p className="text-xs text-white/70 leading-relaxed font-medium line-clamp-2">
                     {activity.summary}
                   </p>
 
-                  <button
-                    onClick={() => alert(`Membuka artikel: ${activity.title}`)}
+                  <Link
+                    href={`/kegiatan?id=${activity.id}`}
                     className="pt-2 text-xs font-bold text-brand-lime hover:text-white flex items-center gap-1 mt-auto hover:underline text-left cursor-pointer"
                   >
                     Baca selengkapnya <ArrowRight className="w-3.5 h-3.5" />
-                  </button>
+                  </Link>
                 </div>
 
               </div>
@@ -704,8 +815,8 @@ export default function HomePage() {
               Kunjungi Toko Kami!
             </h2>
             <p className="text-brand-sage text-sm sm:text-base leading-relaxed font-semibold">
-              Galeri offline kami beroperasi setiap hari dari pukul 08.00 s.d 17.00 WIB. Silakan kunjungi alamat kami langsung untuk melihat ratusa
-              n bibit unggulan segar di Dramaga, Bogor.
+              Galeri offline kami beroperasi setiap hari dari pukul 08.00 s.d 17.00 WIB. Silakan kunjungi alamat kami langsung untuk melihat ratusan
+              n bibit unggul segar di Dramaga, Bogor.
             </p>
             <div className="pt-2">
               <a

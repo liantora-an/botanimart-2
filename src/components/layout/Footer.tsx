@@ -23,7 +23,7 @@ export default function Footer() {
 
           {/* TikTok - Original Neon Brand Accent */}
           <a
-            href="https://tiktok.com"
+            href="https://www.tiktok.com/@botanimart"
             target="_blank"
             rel="noopener noreferrer"
             className="w-12 h-12 rounded-full bg-white hover:scale-110 active:scale-95 shadow-md flex items-center justify-center group transition-all duration-300"

@@ -11,6 +11,7 @@ import NextImage from 'next/image';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 
 interface UserProfile {
   id: string;
@@ -106,7 +107,7 @@ export default function AkunPage() {
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!profileForm.full_name.trim()) {
-      alert('Nama lengkap wajib diisi.');
+      toast.warning('Nama lengkap wajib diisi.');
       return;
     }
 
@@ -126,13 +127,13 @@ export default function AkunPage() {
       if (res.ok && data.success) {
         setUser(data.data);
         setIsEditingProfile(false);
-        alert('Profil berhasil diperbarui!');
+        toast.success('Profil berhasil diperbarui!');
       } else {
-        alert(data.error || 'Gagal memperbarui profil.');
+        toast.error(data.error || 'Gagal memperbarui profil.');
       }
     } catch (err) {
       console.error(err);
-      alert('Terjadi kesalahan koneksi.');
+      toast.error('Terjadi kesalahan koneksi.');
     } finally {
       setSavingProfile(false);
     }
