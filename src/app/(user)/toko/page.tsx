@@ -244,18 +244,15 @@ function TokoKatalogPageContent() {
         params.set('tags', 'Best Seller');
       }
 
+      if (methodFilter) {
+        params.set('pickup_method', methodFilter);
+      }
+
       const res = await fetch(`/api/catalog?${params.toString()}`);
       if (res.ok) {
         const data = await res.json();
         if (data.success && data.data) {
-          let items = data.data.data || [];
-
-          // Apply client-side delivery method filter (since pickup_methods is an array)
-          if (methodFilter) {
-            items = items.filter((p: any) =>
-              p.pickup_methods?.some((m: string) => m.toLowerCase().includes(methodFilter.toLowerCase()))
-            );
-          }
+          const items = data.data.data || [];
 
           // Map items from backend schemas to match expected UI layout structures perfectly
           const mappedItems = items.map((p: any) => ({
@@ -502,7 +499,7 @@ function TokoKatalogPageContent() {
                 >
                   <option value="">Kategori</option>
                   {categories.map((cat: any) => (
-                    <option key={cat.id} value={cat.slug}>{cat.name}</option>
+                    <option key={cat.id} value={cat.id}>{cat.name}</option>
                   ))}
                 </select>
               </div>
@@ -534,7 +531,7 @@ function TokoKatalogPageContent() {
                   className="w-full bg-white border border-[#e2ede7] rounded-2xl py-3.5 px-5 text-sm font-semibold text-brand-forest focus:outline-none focus:ring-2 focus:ring-brand-emerald shadow-sm cursor-pointer"
                 >
                   <option value="">Pengambilan</option>
-                  <option value="dikirim">Dikirim</option>
+                  <option value="kirim">Dikirim</option>
                   <option value="ambil">Ambil Langsung</option>
                 </select>
               </div>

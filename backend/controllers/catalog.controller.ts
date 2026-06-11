@@ -28,6 +28,7 @@ export async function handleListPlants(searchParams: URLSearchParams): Promise<R
       ? searchParams.get('is_recommended') === 'true'
       : undefined,
     tags: searchParams.get('tags') ?? undefined,
+    pickup_method: searchParams.get('pickup_method') ?? undefined,
   };
 
   const result = await getCatalog(params);

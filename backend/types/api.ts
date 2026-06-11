@@ -66,6 +66,7 @@ export interface PlantQueryParams {
   limit?: number;
   is_recommended?: boolean;
   tags?: string;
+  pickup_method?: string;
 }
 
 export interface AdjustStockRequest {

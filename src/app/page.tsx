@@ -196,18 +196,18 @@ export default function HomePage() {
 
   // Gallery slider titles
   const galleryItems = [
-    { 
-      title: 'Tani Center IPB University', 
+    {
+      title: 'Tani Center IPB University',
       desc: 'Kolaborasi strategis Botani Mart dengan IPB Tani Center untuk memajukan pertanian Indonesia.',
       image: '/images/gallery_1.png'
     },
-    { 
-      title: 'Peresmian & Pembukaan Gerai', 
+    {
+      title: 'Peresmian & Pembukaan Gerai',
       desc: 'Sambutan resmi peresmian gerai hortikultura Botani Mart di Bogor.',
       image: '/images/gallery_2.png'
     },
-    { 
-      title: 'Tim Ahli Botani Mart IPB', 
+    {
+      title: 'Tim Ahli Botani Mart IPB',
       desc: 'Kebersamaan tim pengembang dan akademisi IPB dalam menyokong produk berkualitas.',
       image: '/images/gallery_3.png'
     }
@@ -378,7 +378,7 @@ export default function HomePage() {
                 </div>
                 <div>
                   <h4 className="font-bold text-[#1e3329] text-sm">Hubungi Kami</h4>
-                  <p className="text-xs text-brand-sage font-medium mt-0.5">+62 251-862-2000 (Toko Resmi)</p>
+                  <p className="text-xs text-brand-sage font-medium mt-0.5">+6281110631132 (Toko Resmi)</p>
                 </div>
               </div>
             </div>

@@ -28,22 +28,42 @@ export async function listPlants(params: PlantQueryParams = {}): Promise<{
   const from = (page - 1) * limit;
   const to = from + limit - 1;
 
+  const isCategorySlug = params.category && !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(params.category);
+  const selectStr = isCategorySlug
+    ? `
+        *,
+        category:categories!inner (id, name, slug, icon_name)
+      `
+    : PLANT_SELECT;
+
   let query = supabase
     .from('plants')
-    .select(PLANT_SELECT, { count: 'exact' });
+    .select(selectStr, { count: 'exact' });
 
   // Filters
   if (params.is_recommended !== undefined) {
     query = query.eq('is_recommended', params.is_recommended);
   }
   if (params.category) {
-    query = query.eq('categories.slug', params.category);
+    if (isCategorySlug) {
+      query = query.eq('category.slug', params.category);
+    } else {
+      query = query.eq('category_id', params.category);
+    }
   }
   if (params.search) {
     query = query.ilike('name', `%${params.search}%`);
   }
   if (params.tags) {
     query = query.contains('tags', [params.tags]);
+  }
+  if (params.pickup_method) {
+    const method = params.pickup_method.toLowerCase();
+    if (method === 'kirim') {
+      query = query.overlaps('pickup_methods', ['Kirim', 'Dikirim']);
+    } else if (method === 'ambil') {
+      query = query.overlaps('pickup_methods', ['Ambil Sendiri', 'Ambil Langsung', 'Ambil Sendiri di Toko']);
+    }
   }
 
   // Sorting
