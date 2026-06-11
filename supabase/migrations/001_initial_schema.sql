@@ -383,7 +383,8 @@ INSERT INTO public.categories (name, slug, icon_name) VALUES
   ('Kaktus & Sukulen','kaktus-sukulen','cactus'),
   ('Tanaman Indoor', 'tanaman-indoor', 'home'),
   ('Tanaman Outdoor','tanaman-outdoor','sun'),
-  ('Bibit & Benih',  'bibit-benih',    'seedling')
+  ('Bibit & Benih',  'bibit-benih',    'seedling'),
+  ('Pot & Alat Berkebun', 'pot-alat-berkebun', 'wrench')
 ON CONFLICT (slug) DO NOTHING;
 
 -- ============================================================================
