@@ -605,7 +605,12 @@ export default function HomePage() {
                 className="bg-white rounded-3xl border border-[#e2ede7] overflow-hidden shadow-md hover:shadow-2xl transition-all duration-300 flex flex-col group relative"
               >
 
-
+                {/* Discount Badge */}
+                {product.discount_price && (
+                  <div className="absolute top-4 left-4 z-20 px-3 py-1.5 rounded-full bg-rose-600 text-white font-extrabold text-[10px] uppercase tracking-wider shadow-md">
+                    Diskon {Math.round(((product.price - product.discount_price) / product.price) * 100)}%
+                  </div>
+                )}
 
                 {/* Product Image Placeholder Grid */}
                 <div className="h-64 relative select-none overflow-hidden border-b border-[#e2ede7] bg-brand-cream">
@@ -644,8 +649,21 @@ export default function HomePage() {
                   </div>
 
                   {/* Price */}
-                  <div className="text-base font-bold text-brand-emerald">
-                    {renderPrice(product.price)}
+                  <div className="flex items-center gap-2">
+                    {product.discount_price ? (
+                      <>
+                        <span className="text-xs font-bold text-zinc-400 line-through">
+                          {renderPrice(product.price)}
+                        </span>
+                        <span className="text-base font-black text-brand-emerald">
+                          {renderPrice(product.discount_price)}
+                        </span>
+                      </>
+                    ) : (
+                      <div className="text-base font-black text-brand-emerald">
+                        {renderPrice(product.price)}
+                      </div>
+                    )}
                   </div>
 
                   {/* Rating block */}

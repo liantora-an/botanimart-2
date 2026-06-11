@@ -28,6 +28,7 @@ interface CartPlant {
   id: string;
   name: string;
   price: number;
+  discount_price?: number | null;
   stock: number;
   unit: string;
   image_url: string | null;
@@ -352,11 +353,20 @@ export default function CheckoutPage() {
                       <div className="flex-1 min-w-0">
                         <p className="font-semibold text-sm truncate">{item.plant.name}</p>
                         <p className="text-xs text-brand-sage mt-0.5">
-                          {formatRupiah(item.plant.price)} × {item.quantity}
+                          {item.plant.discount_price ? (
+                            <span className="flex items-center gap-1">
+                              <span className="line-through">{formatRupiah(item.plant.price)}</span>
+                              <span className="text-brand-emerald font-semibold">{formatRupiah(item.plant.discount_price)}</span>
+                            </span>
+                          ) : (
+                            formatRupiah(item.plant.price)
+                          )} × {item.quantity}
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="font-bold text-sm">{formatRupiah(item.plant.price * item.quantity)}</p>
+                        <p className="font-bold text-sm">
+                          {formatRupiah((item.plant.discount_price ?? item.plant.price) * item.quantity)}
+                        </p>
                       </div>
                     </div>
                   ))}

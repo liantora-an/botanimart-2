@@ -9,7 +9,7 @@ import type { Cart, CartWithPlant } from '@/backend/types';
 const CART_SELECT = `
   *,
   plant:plants (
-    id, name, slug, price, stock, unit, image_url, pickup_methods
+    id, name, slug, price, discount_price, stock, unit, image_url, pickup_methods
   )
 `;
 

@@ -54,6 +54,11 @@ export async function addPlant(
   if (input.price === undefined || input.price < 0) {
     return { success: false, error: 'Harga tidak valid.' };
   }
+  if (input.discount_price !== undefined && input.discount_price !== null) {
+    if (input.discount_price < 0 || input.discount_price >= input.price) {
+      return { success: false, error: 'Harga diskon harus positif dan lebih kecil dari harga normal.' };
+    }
+  }
   if (input.stock === undefined || input.stock < 0) {
     return { success: false, error: 'Stok tidak boleh negatif.' };
   }
@@ -74,6 +79,16 @@ export async function editPlant(
   }
   if (updates.stock !== undefined && updates.stock < 0) {
     return { success: false, error: 'Stok tidak boleh negatif.' };
+  }
+  if (updates.discount_price !== undefined && updates.discount_price !== null) {
+    if (updates.discount_price < 0) {
+      return { success: false, error: 'Harga diskon tidak boleh negatif.' };
+    }
+    const currentPlant = await getPlantById(id);
+    const targetPrice = updates.price !== undefined ? updates.price : (currentPlant?.price ?? 0);
+    if (updates.discount_price >= targetPrice) {
+      return { success: false, error: 'Harga diskon harus lebih kecil dari harga normal.' };
+    }
   }
 
   const plant = await updatePlant(id, updates);

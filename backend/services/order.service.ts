@@ -68,7 +68,7 @@ export async function checkout(params: {
     items: items.map((item) => ({
       plant_id: item.plant_id,
       plant_name: item.plant!.name,
-      price_at_purchase: item.plant!.price,
+      price_at_purchase: item.plant!.discount_price ?? item.plant!.price,
       quantity: item.quantity,
     })),
   });
@@ -86,7 +86,7 @@ export async function checkout(params: {
     items: items.map((item) => ({
       id: item.plant_id,
       name: item.plant!.name,
-      price: item.plant!.price,
+      price: item.plant!.discount_price ?? item.plant!.price,
       quantity: item.quantity,
     })),
   });
@@ -153,7 +153,7 @@ export async function checkoutDemo(params: {
     items: items.map((item) => ({
       plant_id: item.plant_id,
       plant_name: item.plant!.name,
-      price_at_purchase: item.plant!.price,
+      price_at_purchase: item.plant!.discount_price ?? item.plant!.price,
       quantity: item.quantity,
     })),
   });

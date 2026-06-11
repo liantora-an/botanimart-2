@@ -45,6 +45,7 @@ export interface CreatePlantRequest {
   name: string;
   description?: string;
   price: number;
+  discount_price?: number | null;
   stock: number;
   unit?: string;
   image_url?: string;

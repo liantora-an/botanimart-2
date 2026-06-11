@@ -73,6 +73,7 @@ export default function AdminDashboardPage() {
     name: '',
     category_id: '',
     price: '',
+    discount_price: '',
     stock: '',
     description: '',
     image: '',
@@ -317,10 +318,21 @@ export default function AdminDashboardPage() {
       return;
     }
 
+    const priceNum = Number(productForm.price);
+    const discountPriceNum = productForm.discount_price ? Number(productForm.discount_price) : null;
+
+    if (discountPriceNum !== null) {
+      if (discountPriceNum < 0 || discountPriceNum >= priceNum) {
+        toast.warning('Harga diskon harus positif dan lebih kecil dari harga normal!');
+        return;
+      }
+    }
+
     const payload = {
       name: productForm.name,
       category_id: productForm.category_id,
-      price: Number(productForm.price),
+      price: priceNum,
+      discount_price: discountPriceNum,
       stock: Number(productForm.stock),
       description: productForm.description,
       image_url: productForm.image || null,
@@ -358,6 +370,7 @@ export default function AdminDashboardPage() {
           name: '',
           category_id: '',
           price: '',
+          discount_price: '',
           stock: '',
           description: '',
           image: '',
@@ -381,6 +394,7 @@ export default function AdminDashboardPage() {
       name: product.name,
       category_id: product.category_id || '',
       price: String(product.price),
+      discount_price: product.discount_price ? String(product.discount_price) : '',
       stock: String(product.stock),
       description: product.description || '',
       image: product.image_url || '',
@@ -1073,6 +1087,7 @@ export default function AdminDashboardPage() {
                       name: '',
                       category_id: '',
                       price: '',
+                      discount_price: '',
                       stock: '',
                       description: '',
                       image: '',
@@ -1178,7 +1193,20 @@ export default function AdminDashboardPage() {
                           </td>
 
                           <td className="py-4.5 text-xs font-bold text-brand-emerald uppercase tracking-wider">{product.categoryName}</td>
-                          <td className="py-4.5 font-bold">Rp {product.price.toLocaleString('id-ID')}</td>
+                          <td className="py-4.5 text-xs">
+                            {product.discount_price ? (
+                              <div className="flex flex-col">
+                                <span className="text-[10px] text-zinc-400 line-through">
+                                  Rp {product.price.toLocaleString('id-ID')}
+                                </span>
+                                <span className="font-bold text-brand-emerald text-sm">
+                                  Rp {product.discount_price.toLocaleString('id-ID')}
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="font-bold">Rp {product.price.toLocaleString('id-ID')}</span>
+                            )}
+                          </td>
 
                           {/* Stock Status Capsule */}
                           <td className="py-4.5">
@@ -1615,8 +1643,8 @@ export default function AdminDashboardPage() {
                 </select>
               </div>
 
-              {/* Price & Stock Grid fields */}
-              <div className="grid sm:grid-cols-2 gap-4">
+              {/* Price, Discount & Stock Grid fields */}
+              <div className="grid sm:grid-cols-3 gap-4">
 
                 {/* Price */}
                 <div className="flex flex-col">
@@ -1628,6 +1656,18 @@ export default function AdminDashboardPage() {
                     onChange={(e) => setProductForm(prev => ({ ...prev, price: e.target.value }))}
                     className="w-full px-5 py-3 text-sm border border-zinc-200 rounded-full bg-white text-brand-forest focus:outline-none focus:ring-2 focus:ring-brand-emerald shadow-inner"
                     required
+                  />
+                </div>
+
+                {/* Discount Price */}
+                <div className="flex flex-col">
+                  <label className="text-sm font-semibold text-[#1e3329] mb-1">Harga Diskon (Opsional)</label>
+                  <input
+                    type="number"
+                    placeholder="Misal: 28000"
+                    value={productForm.discount_price}
+                    onChange={(e) => setProductForm(prev => ({ ...prev, discount_price: e.target.value }))}
+                    className="w-full px-5 py-3 text-sm border border-zinc-200 rounded-full bg-white text-brand-forest focus:outline-none focus:ring-2 focus:ring-brand-emerald shadow-inner"
                   />
                 </div>
 

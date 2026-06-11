@@ -262,6 +262,7 @@ function TokoKatalogPageContent() {
             name: p.name,
             category: p.category?.name || 'Tanaman',
             price: p.price,
+            discount_price: p.discount_price,
             unit: p.unit || 'buah',
             rating: p.rating_avg ? Number(p.rating_avg) : 0,
             reviews: p.rating_count || 0,
@@ -569,6 +570,12 @@ function TokoKatalogPageContent() {
                     onClick={() => openProductDetail(product)}
                     className="bg-white rounded-3xl border border-[#e2ede7] overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col group relative cursor-pointer"
                   >
+                    {/* Discount Badge */}
+                    {product.discount_price && (
+                      <div className="absolute top-4 left-4 z-20 px-3 py-1.5 rounded-full bg-rose-600 text-white font-extrabold text-[10px] uppercase tracking-wider shadow-md">
+                        Diskon {Math.round(((product.price - product.discount_price) / product.price) * 100)}%
+                      </div>
+                    )}
 
 
                     {/* Plant Image or Empty Placeholder */}
@@ -605,8 +612,22 @@ function TokoKatalogPageContent() {
                         {product.name}
                       </h3>
 
-                      <div className="text-base font-bold text-brand-emerald">
-                        Rp. {product.price.toLocaleString('id-ID')}
+                      {/* Price */}
+                      <div className="flex items-center gap-2">
+                        {product.discount_price ? (
+                          <>
+                            <span className="text-xs font-bold text-zinc-400 line-through">
+                              Rp. {product.price.toLocaleString('id-ID')}
+                            </span>
+                            <span className="text-base font-black text-brand-emerald">
+                              Rp. {product.discount_price.toLocaleString('id-ID')}
+                            </span>
+                          </>
+                        ) : (
+                          <div className="text-base font-black text-brand-emerald">
+                            Rp. {product.price.toLocaleString('id-ID')}
+                          </div>
+                        )}
                       </div>
 
                       <div className="flex items-center gap-1 text-xs text-brand-sage font-semibold">
@@ -832,8 +853,24 @@ function TokoKatalogPageContent() {
                 </div>
 
                 {/* Price Label */}
-                <div className="text-3xl font-heading font-black text-brand-emerald border-y border-[#e2ede7] py-4">
-                  Rp. {selectedProduct.price.toLocaleString('id-ID')}
+                <div className="border-y border-[#e2ede7] py-4">
+                  {selectedProduct.discount_price ? (
+                    <div className="flex items-baseline gap-3">
+                      <span className="text-sm font-bold text-zinc-400 line-through">
+                        Rp. {selectedProduct.price.toLocaleString('id-ID')}
+                      </span>
+                      <span className="text-3xl font-heading font-black text-brand-emerald">
+                        Rp. {selectedProduct.discount_price.toLocaleString('id-ID')}
+                      </span>
+                      <span className="text-xs font-extrabold text-white bg-rose-600 px-2 py-0.5 rounded shadow-sm">
+                        Diskon {Math.round(((selectedProduct.price - selectedProduct.discount_price) / selectedProduct.price) * 100)}%
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="text-3xl font-heading font-black text-brand-emerald">
+                      Rp. {selectedProduct.price.toLocaleString('id-ID')}
+                    </div>
+                  )}
                 </div>
 
                 {/* Pengambilan Info */}
@@ -1123,6 +1160,12 @@ function TokoKatalogPageContent() {
                     onClick={() => openProductDetail(recommendation)}
                     className="bg-white rounded-3xl border border-[#e2ede7] overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col group relative cursor-pointer"
                   >
+                    {/* Discount Badge */}
+                    {recommendation.discount_price && (
+                      <div className="absolute top-3 left-3 z-20 px-2.5 py-1.5 rounded-full bg-rose-600 text-white font-extrabold text-[9px] uppercase tracking-wider shadow-md">
+                        Diskon {Math.round(((recommendation.price - recommendation.discount_price) / recommendation.price) * 100)}%
+                      </div>
+                    )}
 
 
                     {/* Plant image or placeholder */}
@@ -1157,8 +1200,22 @@ function TokoKatalogPageContent() {
                         {recommendation.name}
                       </h4>
 
-                      <div className="text-sm font-bold text-brand-emerald">
-                        Rp. {recommendation.price.toLocaleString('id-ID')}
+                      {/* Price */}
+                      <div className="flex items-center gap-1.5">
+                        {recommendation.discount_price ? (
+                          <>
+                            <span className="text-[10px] font-bold text-zinc-400 line-through">
+                              Rp. {recommendation.price.toLocaleString('id-ID')}
+                            </span>
+                            <span className="text-sm font-black text-brand-emerald">
+                              Rp. {recommendation.discount_price.toLocaleString('id-ID')}
+                            </span>
+                          </>
+                        ) : (
+                          <div className="text-sm font-black text-brand-emerald">
+                            Rp. {recommendation.price.toLocaleString('id-ID')}
+                          </div>
+                        )}
                       </div>
 
                       <div className="flex items-center gap-1 text-xs text-brand-sage font-semibold">
