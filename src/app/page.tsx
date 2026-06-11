@@ -135,7 +135,7 @@ export default function HomePage() {
 
   const fetchProducts = useCallback(async () => {
     try {
-      const res = await fetch('/api/catalog?limit=3&sort=newest');
+      const res = await fetch('/api/catalog?limit=3&sort=popular');
       const data = await res.json();
       if (data.success && data.data && data.data.data && data.data.data.length > 0) {
         setBestSellers(data.data.data);
