@@ -10,6 +10,7 @@ import NextImage from 'next/image';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import { useRouter } from 'next/navigation';
+import { isDiscountActive, getActivePrice } from '@/backend/utils/discount';
 
 interface CartPlant {
   id: string;
@@ -17,6 +18,8 @@ interface CartPlant {
   slug: string;
   price: number;
   discount_price: number | null;
+  discount_start_date?: string | null;
+  discount_end_date?: string | null;
   stock: number;
   unit: string;
   image_url: string | null;
@@ -213,13 +216,13 @@ export default function KeranjangPage() {
                     <div className="flex-1 min-w-0">
                       <h3 className="font-semibold text-sm sm:text-base truncate">{item.plant.name}</h3>
                       <p className="text-brand-emerald font-bold text-sm mt-0.5">
-                        {item.plant.discount_price ? (
+                        {isDiscountActive(item.plant) ? (
                           <span className="flex items-center gap-1.5 flex-wrap">
                             <span className="text-zinc-400 line-through text-xs font-semibold">
                               {formatRupiah(item.plant.price)}
                             </span>
                             <span>
-                              {formatRupiah(item.plant.discount_price)}
+                              {formatRupiah(item.plant.discount_price!)}
                             </span>
                           </span>
                         ) : (
@@ -250,7 +253,7 @@ export default function KeranjangPage() {
                         </div>
                         <div className="flex items-center gap-3">
                           <span className="font-bold text-sm">
-                            {formatRupiah((item.plant.discount_price ?? item.plant.price) * item.quantity)}
+                            {formatRupiah(getActivePrice(item.plant) * item.quantity)}
                           </span>
                           <button
                             onClick={() => removeItem(item.id)}

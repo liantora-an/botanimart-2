@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { isDiscountActive } from '@/backend/utils/discount';
 import {
   Leaf,
   Search,
@@ -606,7 +607,7 @@ export default function HomePage() {
               >
 
                 {/* Discount Badge */}
-                {product.discount_price && (
+                {isDiscountActive(product) && (
                   <div className="absolute top-4 left-4 z-20 px-3 py-1.5 rounded-full bg-rose-600 text-white font-extrabold text-[10px] uppercase tracking-wider shadow-md">
                     Diskon {Math.round(((product.price - product.discount_price) / product.price) * 100)}%
                   </div>
@@ -650,7 +651,7 @@ export default function HomePage() {
 
                   {/* Price */}
                   <div className="flex items-center gap-2">
-                    {product.discount_price ? (
+                    {isDiscountActive(product) ? (
                       <>
                         <span className="text-xs font-bold text-zinc-400 line-through">
                           {renderPrice(product.price)}

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import { isDiscountActive } from '@/backend/utils/discount';
 import {
   LayoutDashboard,
   Sprout,
@@ -40,6 +41,14 @@ import { toast } from 'sonner';
 export default function AdminDashboardPage() {
   const router = useRouter();
 
+  const formatDatetimeLocal = (isoString?: string | null) => {
+    if (!isoString) return '';
+    const date = new Date(isoString);
+    const offset = date.getTimezoneOffset();
+    const localDate = new Date(date.getTime() - offset * 60 * 1000);
+    return localDate.toISOString().slice(0, 16);
+  };
+
   // Navigation Menu state
   const [activeMenu, setActiveMenu] = useState<'dashboard' | 'produk' | 'kegiatan' | 'pesanan'>('dashboard');
 
@@ -74,6 +83,8 @@ export default function AdminDashboardPage() {
     category_id: '',
     price: '',
     discount_price: '',
+    discount_start_date: '',
+    discount_end_date: '',
     stock: '',
     description: '',
     image: '',
@@ -328,11 +339,23 @@ export default function AdminDashboardPage() {
       }
     }
 
+    const startDate = productForm.discount_start_date ? new Date(productForm.discount_start_date).toISOString() : null;
+    const endDate = productForm.discount_end_date ? new Date(productForm.discount_end_date).toISOString() : null;
+
+    if (startDate && endDate) {
+      if (new Date(endDate) <= new Date(startDate)) {
+        toast.warning('Tanggal berakhir diskon harus setelah tanggal mulai!');
+        return;
+      }
+    }
+
     const payload = {
       name: productForm.name,
       category_id: productForm.category_id,
       price: priceNum,
       discount_price: discountPriceNum,
+      discount_start_date: startDate,
+      discount_end_date: endDate,
       stock: Number(productForm.stock),
       description: productForm.description,
       image_url: productForm.image || null,
@@ -371,6 +394,8 @@ export default function AdminDashboardPage() {
           category_id: '',
           price: '',
           discount_price: '',
+          discount_start_date: '',
+          discount_end_date: '',
           stock: '',
           description: '',
           image: '',
@@ -395,6 +420,8 @@ export default function AdminDashboardPage() {
       category_id: product.category_id || '',
       price: String(product.price),
       discount_price: product.discount_price ? String(product.discount_price) : '',
+      discount_start_date: formatDatetimeLocal(product.discount_start_date),
+      discount_end_date: formatDatetimeLocal(product.discount_end_date),
       stock: String(product.stock),
       description: product.description || '',
       image: product.image_url || '',
@@ -1088,6 +1115,8 @@ export default function AdminDashboardPage() {
                       category_id: '',
                       price: '',
                       discount_price: '',
+                      discount_start_date: '',
+                      discount_end_date: '',
                       stock: '',
                       description: '',
                       image: '',
@@ -1196,12 +1225,35 @@ export default function AdminDashboardPage() {
                           <td className="py-4.5 text-xs">
                             {product.discount_price ? (
                               <div className="flex flex-col">
-                                <span className="text-[10px] text-zinc-400 line-through">
-                                  Rp {product.price.toLocaleString('id-ID')}
-                                </span>
-                                <span className="font-bold text-brand-emerald text-sm">
-                                  Rp {product.discount_price.toLocaleString('id-ID')}
-                                </span>
+                                {isDiscountActive(product) ? (
+                                  <>
+                                    <span className="text-[10px] text-zinc-400 line-through">
+                                      Rp {product.price.toLocaleString('id-ID')}
+                                    </span>
+                                    <span className="font-bold text-brand-emerald text-sm">
+                                      Rp {product.discount_price.toLocaleString('id-ID')}
+                                    </span>
+                                    {(product.discount_start_date || product.discount_end_date) && (
+                                      <span className="text-[9px] text-zinc-500 mt-0.5">
+                                        Aktif s/d {product.discount_end_date ? new Date(product.discount_end_date).toLocaleDateString('id-ID') : 'Seterusnya'}
+                                      </span>
+                                    )}
+                                  </>
+                                ) : (
+                                  <>
+                                    <span className="font-bold text-sm">
+                                      Rp {product.price.toLocaleString('id-ID')}
+                                    </span>
+                                    <span className="text-[10px] text-zinc-400">
+                                      Promo Rp {product.discount_price.toLocaleString('id-ID')} (Tidak Aktif)
+                                    </span>
+                                    {product.discount_start_date && (
+                                      <span className="text-[9px] text-amber-600 mt-0.5">
+                                        Mulai: {new Date(product.discount_start_date).toLocaleDateString('id-ID')}
+                                      </span>
+                                    )}
+                                  </>
+                                )}
                               </div>
                             ) : (
                               <span className="font-bold">Rp {product.price.toLocaleString('id-ID')}</span>
@@ -1557,10 +1609,10 @@ export default function AdminDashboardPage() {
       {/* MODAL WINDOW 1: PRODUCT CRUD STATEFUL FORM (FROSTED GLASSMORPHISM) */}
       {isProductModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-md bg-black/40 animate-fade-in-up">
-          <div className="bg-white/95 rounded-[36px] border border-white/20 shadow-2xl w-full max-w-xl overflow-hidden animate-fade-in-up relative">
+          <div className="bg-white/95 rounded-[36px] border border-white/20 shadow-2xl w-full max-w-xl max-h-[90vh] flex flex-col overflow-hidden animate-fade-in-up relative">
 
             {/* Modal Title header */}
-            <div className="bg-brand-cream border-b border-[#e2ede7] px-8 py-5 flex items-center justify-between">
+            <div className="bg-brand-cream border-b border-[#e2ede7] px-8 py-5 flex items-center justify-between shrink-0">
               <h3 className="font-heading font-extrabold text-lg text-[#1e3329]">
                 {editingProduct ? 'Edit Tanaman/Produk' : 'Tambah Tanaman/Produk Baru'}
               </h3>
@@ -1574,184 +1626,217 @@ export default function AdminDashboardPage() {
             </div>
 
             {/* Modal Body Form fields */}
-            <form onSubmit={handleProductSubmit} className="p-8 space-y-4 text-left">
-
-              {/* Product photo upload block */}
-              <div className="flex flex-col">
-                <label className="text-sm font-semibold text-[#1e3329] mb-1.5">Foto Produk</label>
-                <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 rounded-2xl bg-brand-cream border border-[#e2ede7] flex items-center justify-center overflow-hidden shrink-0 relative">
-                    {productForm.image ? (
-                      <img src={productForm.image} alt="Preview" className="w-full h-full object-cover" />
-                    ) : (
-                      <ImageIcon className="w-6 h-6 text-brand-sage" />
+            <form onSubmit={handleProductSubmit} className="flex-1 flex flex-col overflow-hidden text-left">
+              
+              {/* Scrollable Form Content */}
+              <div className="flex-1 overflow-y-auto p-8 space-y-5">
+                
+                {/* Product photo upload block */}
+                <div className="flex flex-col">
+                  <label className="text-sm font-semibold text-[#1e3329] mb-1.5">Foto Produk</label>
+                  <div className="flex items-center gap-4">
+                    <div className="w-16 h-16 rounded-2xl bg-brand-cream border border-[#e2ede7] flex items-center justify-center overflow-hidden shrink-0 relative">
+                      {productForm.image ? (
+                        <img src={productForm.image} alt="Preview" className="w-full h-full object-cover" />
+                      ) : (
+                        <ImageIcon className="w-6 h-6 text-brand-sage" />
+                      )}
+                    </div>
+                    <label className={`cursor-pointer inline-flex items-center justify-center gap-1.5 px-4.5 py-2.5 rounded-full border border-brand-emerald text-brand-emerald hover:bg-brand-cream text-xs font-bold transition-all ${uploadingImage ? 'opacity-50 pointer-events-none' : ''}`}>
+                      {uploadingImage ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Upload className="w-3.5 h-3.5" />
+                      )}
+                      <span>{uploadingImage ? 'Mengunggah...' : 'Upload Foto'}</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                        className="hidden"
+                        disabled={uploadingImage}
+                      />
+                    </label>
+                    {productForm.image && (
+                      <button
+                        type="button"
+                        onClick={() => setProductForm(prev => ({ ...prev, image: '' }))}
+                        className="text-xs font-bold text-rose-600 hover:underline cursor-pointer"
+                      >
+                        Hapus Foto
+                      </button>
                     )}
                   </div>
-                  <label className={`cursor-pointer inline-flex items-center justify-center gap-1.5 px-4.5 py-2.5 rounded-full border border-brand-emerald text-brand-emerald hover:bg-brand-cream text-xs font-bold transition-all ${uploadingImage ? 'opacity-50 pointer-events-none' : ''}`}>
-                    {uploadingImage ? (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    ) : (
-                      <Upload className="w-3.5 h-3.5" />
-                    )}
-                    <span>{uploadingImage ? 'Mengunggah...' : 'Upload Foto'}</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageUpload}
-                      className="hidden"
-                      disabled={uploadingImage}
-                    />
-                  </label>
-                  {productForm.image && (
-                    <button
-                      type="button"
-                      onClick={() => setProductForm(prev => ({ ...prev, image: '' }))}
-                      className="text-xs font-bold text-rose-600 hover:underline cursor-pointer"
-                    >
-                      Hapus Foto
-                    </button>
-                  )}
                 </div>
-              </div>
 
-              {/* Product name */}
-              <div className="flex flex-col">
-                <label className="text-sm font-semibold text-[#1e3329] mb-1">Nama Produk <span className="text-red-500">*</span></label>
-                <input
-                  type="text"
-                  placeholder="Misal: Bibit Mangga Harum Manis..."
-                  value={productForm.name}
-                  onChange={(e) => setProductForm(prev => ({ ...prev, name: e.target.value }))}
-                  className="w-full px-5 py-3 text-sm border border-zinc-200 rounded-full bg-white text-brand-forest focus:outline-none focus:ring-2 focus:ring-brand-emerald shadow-inner"
-                  required
-                />
-              </div>
-
-              {/* Product Category dropdown */}
-              <div className="flex flex-col">
-                <label className="text-sm font-semibold text-[#1e3329] mb-1">Kategori <span className="text-red-500">*</span></label>
-                <select
-                  value={productForm.category_id}
-                  onChange={(e) => setProductForm(prev => ({ ...prev, category_id: e.target.value }))}
-                  className="w-full px-5 py-3 text-sm border border-zinc-200 rounded-full bg-white text-brand-forest focus:outline-none focus:ring-2 focus:ring-brand-emerald cursor-pointer"
-                  required
-                >
-                  <option value="">Pilih Kategori</option>
-                  {categories.map(c => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Price, Discount & Stock Grid fields */}
-              <div className="grid sm:grid-cols-3 gap-4">
-
-                {/* Price */}
+                {/* Product name */}
                 <div className="flex flex-col">
-                  <label className="text-sm font-semibold text-[#1e3329] mb-1">Harga (Rupiah) <span className="text-red-500">*</span></label>
+                  <label className="text-sm font-semibold text-[#1e3329] mb-1">Nama Produk <span className="text-red-500">*</span></label>
                   <input
-                    type="number"
-                    placeholder="Misal: 35000"
-                    value={productForm.price}
-                    onChange={(e) => setProductForm(prev => ({ ...prev, price: e.target.value }))}
+                    type="text"
+                    placeholder="Misal: Bibit Mangga Harum Manis..."
+                    value={productForm.name}
+                    onChange={(e) => setProductForm(prev => ({ ...prev, name: e.target.value }))}
                     className="w-full px-5 py-3 text-sm border border-zinc-200 rounded-full bg-white text-brand-forest focus:outline-none focus:ring-2 focus:ring-brand-emerald shadow-inner"
                     required
                   />
                 </div>
 
-                {/* Discount Price */}
+                {/* Product Category dropdown */}
                 <div className="flex flex-col">
-                  <label className="text-sm font-semibold text-[#1e3329] mb-1">Harga Diskon (Opsional)</label>
-                  <input
-                    type="number"
-                    placeholder="Misal: 28000"
-                    value={productForm.discount_price}
-                    onChange={(e) => setProductForm(prev => ({ ...prev, discount_price: e.target.value }))}
-                    className="w-full px-5 py-3 text-sm border border-zinc-200 rounded-full bg-white text-brand-forest focus:outline-none focus:ring-2 focus:ring-brand-emerald shadow-inner"
-                  />
-                </div>
-
-                {/* Stock */}
-                <div className="flex flex-col">
-                  <label className="text-sm font-semibold text-[#1e3329] mb-1">Stok Tanaman <span className="text-red-500">*</span></label>
-                  <input
-                    type="number"
-                    placeholder="Misal: 25"
-                    value={productForm.stock}
-                    onChange={(e) => setProductForm(prev => ({ ...prev, stock: e.target.value }))}
-                    className="w-full px-5 py-3 text-sm border border-zinc-200 rounded-full bg-white text-brand-forest focus:outline-none focus:ring-2 focus:ring-brand-emerald shadow-inner"
+                  <label className="text-sm font-semibold text-[#1e3329] mb-1">Kategori <span className="text-red-500">*</span></label>
+                  <select
+                    value={productForm.category_id}
+                    onChange={(e) => setProductForm(prev => ({ ...prev, category_id: e.target.value }))}
+                    className="w-full px-5 py-3 text-sm border border-zinc-200 rounded-full bg-white text-brand-forest focus:outline-none focus:ring-2 focus:ring-brand-emerald cursor-pointer"
                     required
+                  >
+                    <option value="">Pilih Kategori</option>
+                    {categories.map(c => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Price & Stock Row */}
+                <div className="grid sm:grid-cols-2 gap-4">
+                  {/* Price */}
+                  <div className="flex flex-col">
+                    <label className="text-sm font-semibold text-[#1e3329] mb-1">Harga (Rupiah) <span className="text-red-500">*</span></label>
+                    <input
+                      type="number"
+                      placeholder="Misal: 35000"
+                      value={productForm.price}
+                      onChange={(e) => setProductForm(prev => ({ ...prev, price: e.target.value }))}
+                      className="w-full px-5 py-3 text-sm border border-zinc-200 rounded-full bg-white text-brand-forest focus:outline-none focus:ring-2 focus:ring-brand-emerald shadow-inner"
+                      required
+                    />
+                  </div>
+
+                  {/* Stock */}
+                  <div className="flex flex-col">
+                    <label className="text-sm font-semibold text-[#1e3329] mb-1">Stok Tanaman <span className="text-red-500">*</span></label>
+                    <input
+                      type="number"
+                      placeholder="Misal: 25"
+                      value={productForm.stock}
+                      onChange={(e) => setProductForm(prev => ({ ...prev, stock: e.target.value }))}
+                      className="w-full px-5 py-3 text-sm border border-zinc-200 rounded-full bg-white text-brand-forest focus:outline-none focus:ring-2 focus:ring-brand-emerald shadow-inner"
+                      required
+                    />
+                  </div>
+                </div>
+
+                {/* Discount settings section box */}
+                <div className="bg-brand-cream/30 border border-[#e2ede7] rounded-3xl p-5 space-y-4">
+                  <h4 className="text-xs font-bold text-brand-forest tracking-wider uppercase">Pengaturan Diskon / Promo</h4>
+
+                  {/* Discount Price */}
+                  <div className="flex flex-col">
+                    <label className="text-xs font-bold text-[#1e3329] mb-1">Harga Diskon (Opsional)</label>
+                    <input
+                      type="number"
+                      placeholder="Misal: 28000"
+                      value={productForm.discount_price}
+                      onChange={(e) => setProductForm(prev => ({ ...prev, discount_price: e.target.value }))}
+                      className="w-full px-5 py-3 text-sm border border-zinc-200 rounded-full bg-white text-brand-forest focus:outline-none focus:ring-2 focus:ring-brand-emerald shadow-inner"
+                    />
+                  </div>
+
+                  {/* Dates range */}
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    {/* Discount Start Date */}
+                    <div className="flex flex-col">
+                      <label className="text-xs font-bold text-[#1e3329] mb-1">Tanggal Mulai Promo (Opsional)</label>
+                      <input
+                        type="datetime-local"
+                        value={productForm.discount_start_date}
+                        onChange={(e) => setProductForm(prev => ({ ...prev, discount_start_date: e.target.value }))}
+                        className="w-full px-5 py-3 text-sm border border-[#e2ede7] rounded-full bg-white text-brand-forest focus:outline-none focus:ring-2 focus:ring-brand-emerald shadow-inner"
+                      />
+                    </div>
+
+                    {/* Discount End Date */}
+                    <div className="flex flex-col">
+                      <label className="text-xs font-bold text-[#1e3329] mb-1">Tanggal Berakhir Promo (Opsional)</label>
+                      <input
+                        type="datetime-local"
+                        value={productForm.discount_end_date}
+                        onChange={(e) => setProductForm(prev => ({ ...prev, discount_end_date: e.target.value }))}
+                        className="w-full px-5 py-3 text-sm border border-[#e2ede7] rounded-full bg-white text-brand-forest focus:outline-none focus:ring-2 focus:ring-brand-emerald shadow-inner"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Pickup Methods (Metode Pengambilan) */}
+                <div className="flex flex-col">
+                  <label className="text-sm font-semibold text-[#1e3329] mb-1.5">Metode Pengambilan <span className="text-red-500">*</span></label>
+                  <div className="flex gap-6 mt-1">
+                    <label className="inline-flex items-center gap-2 text-sm font-semibold text-brand-forest cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={productForm.pickupMethods.includes('Kirim')}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setProductForm(prev => ({ ...prev, pickupMethods: [...prev.pickupMethods, 'Kirim'] }));
+                          } else {
+                            setProductForm(prev => ({ ...prev, pickupMethods: prev.pickupMethods.filter(m => m !== 'Kirim') }));
+                          }
+                        }}
+                        className="rounded border-zinc-300 text-brand-emerald focus:ring-brand-emerald w-4 h-4 cursor-pointer"
+                      />
+                      <span>Kirim / Delivery</span>
+                    </label>
+                    <label className="inline-flex items-center gap-2 text-sm font-semibold text-brand-forest cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={productForm.pickupMethods.includes('Ambil Sendiri')}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setProductForm(prev => ({ ...prev, pickupMethods: [...prev.pickupMethods, 'Ambil Sendiri'] }));
+                          } else {
+                            setProductForm(prev => ({ ...prev, pickupMethods: prev.pickupMethods.filter(m => m !== 'Ambil Sendiri') }));
+                          }
+                        }}
+                        className="rounded border-zinc-300 text-brand-emerald focus:ring-brand-emerald w-4 h-4 cursor-pointer"
+                      />
+                      <span>Ambil Sendiri di Toko</span>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Description long text */}
+                <div className="flex flex-col">
+                  <label className="text-sm font-semibold text-[#1e3329] mb-1">Keterangan/Deskripsi</label>
+                  <textarea
+                    placeholder="Masukkan deksripsi lengkap produk di sini..."
+                    rows={3}
+                    value={productForm.description}
+                    onChange={(e) => setProductForm(prev => ({ ...prev, description: e.target.value }))}
+                    className="w-full px-5 py-3 text-sm border border-zinc-200 rounded-3xl bg-white text-brand-forest focus:outline-none focus:ring-2 focus:ring-brand-emerald shadow-inner"
                   />
                 </div>
 
-              </div>
-
-              {/* Pickup Methods (Metode Pengambilan) */}
-              <div className="flex flex-col">
-                <label className="text-sm font-semibold text-[#1e3329] mb-1.5">Metode Pengambilan <span className="text-red-500">*</span></label>
-                <div className="flex gap-6 mt-1">
-                  <label className="inline-flex items-center gap-2 text-sm font-semibold text-brand-forest cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={productForm.pickupMethods.includes('Kirim')}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setProductForm(prev => ({ ...prev, pickupMethods: [...prev.pickupMethods, 'Kirim'] }));
-                        } else {
-                          setProductForm(prev => ({ ...prev, pickupMethods: prev.pickupMethods.filter(m => m !== 'Kirim') }));
-                        }
-                      }}
-                      className="rounded border-zinc-300 text-brand-emerald focus:ring-brand-emerald w-4 h-4 cursor-pointer"
-                    />
-                    <span>Kirim / Delivery</span>
-                  </label>
-                  <label className="inline-flex items-center gap-2 text-sm font-semibold text-brand-forest cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={productForm.pickupMethods.includes('Ambil Sendiri')}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setProductForm(prev => ({ ...prev, pickupMethods: [...prev.pickupMethods, 'Ambil Sendiri'] }));
-                        } else {
-                          setProductForm(prev => ({ ...prev, pickupMethods: prev.pickupMethods.filter(m => m !== 'Ambil Sendiri') }));
-                        }
-                      }}
-                      className="rounded border-zinc-300 text-brand-emerald focus:ring-brand-emerald w-4 h-4 cursor-pointer"
-                    />
-                    <span>Ambil Sendiri di Toko</span>
-                  </label>
+                {/* Tags / Spesifikasi */}
+                <div className="flex flex-col">
+                  <label className="text-sm font-semibold text-[#1e3329] mb-1">Tags / Spesifikasi Produk (Pisahkan dengan koma)</label>
+                  <input
+                    type="text"
+                    placeholder="Contoh: Tinggi Tanaman: ± 50cm, Metode Perbanyakan: Okulasi"
+                    value={productForm.tags}
+                    onChange={(e) => setProductForm(prev => ({ ...prev, tags: e.target.value }))}
+                    className="w-full px-5 py-3 text-sm border border-zinc-200 rounded-full bg-white text-brand-forest focus:outline-none focus:ring-2 focus:ring-brand-emerald shadow-inner"
+                  />
+                  <span className="text-[10px] text-brand-sage mt-1 pl-2">
+                    Masukkan spesifikasi produk dipisahkan oleh tanda koma. Tags ini akan otomatis muncul sebagai list "Spesifikasi & Kelebihan" di halaman detail produk.
+                  </span>
                 </div>
-              </div>
 
-              {/* Description long text */}
-              <div className="flex flex-col">
-                <label className="text-sm font-semibold text-[#1e3329] mb-1">Keterangan/Deskripsi</label>
-                <textarea
-                  placeholder="Masukkan deksripsi lengkap produk di sini..."
-                  rows={3}
-                  value={productForm.description}
-                  onChange={(e) => setProductForm(prev => ({ ...prev, description: e.target.value }))}
-                  className="w-full px-5 py-3 text-sm border border-zinc-200 rounded-3xl bg-white text-brand-forest focus:outline-none focus:ring-2 focus:ring-brand-emerald shadow-inner"
-                />
-              </div>
-
-              {/* Tags / Spesifikasi */}
-              <div className="flex flex-col">
-                <label className="text-sm font-semibold text-[#1e3329] mb-1">Tags / Spesifikasi Produk (Pisahkan dengan koma)</label>
-                <input
-                  type="text"
-                  placeholder="Contoh: Tinggi Tanaman: ± 50cm, Metode Perbanyakan: Okulasi"
-                  value={productForm.tags}
-                  onChange={(e) => setProductForm(prev => ({ ...prev, tags: e.target.value }))}
-                  className="w-full px-5 py-3 text-sm border border-zinc-200 rounded-full bg-white text-brand-forest focus:outline-none focus:ring-2 focus:ring-brand-emerald shadow-inner"
-                />
-                <span className="text-[10px] text-brand-sage mt-1 pl-2">
-                  Masukkan spesifikasi produk dipisahkan oleh tanda koma. Tags ini akan otomatis muncul sebagai list "Spesifikasi & Kelebihan" di halaman detail produk.
-                </span>
               </div>
 
               {/* Actions Footer row */}
-              <div className="pt-4 border-t border-brand-cream flex justify-end gap-3">
+              <div className="px-8 py-5 border-t border-[#e2ede7] bg-brand-cream/60 flex justify-end gap-3 shrink-0">
                 <button
                   type="button"
                   onClick={() => setIsProductModalOpen(false)}

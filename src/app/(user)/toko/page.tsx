@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { isDiscountActive } from '@/backend/utils/discount';
 import {
   Search,
   ShoppingBag,
@@ -263,6 +264,8 @@ function TokoKatalogPageContent() {
             category: p.category?.name || 'Tanaman',
             price: p.price,
             discount_price: p.discount_price,
+            discount_start_date: p.discount_start_date,
+            discount_end_date: p.discount_end_date,
             unit: p.unit || 'buah',
             rating: p.rating_avg ? Number(p.rating_avg) : 0,
             reviews: p.rating_count || 0,
@@ -571,7 +574,7 @@ function TokoKatalogPageContent() {
                     className="bg-white rounded-3xl border border-[#e2ede7] overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col group relative cursor-pointer"
                   >
                     {/* Discount Badge */}
-                    {product.discount_price && (
+                    {isDiscountActive(product) && (
                       <div className="absolute top-4 left-4 z-20 px-3 py-1.5 rounded-full bg-rose-600 text-white font-extrabold text-[10px] uppercase tracking-wider shadow-md">
                         Diskon {Math.round(((product.price - product.discount_price) / product.price) * 100)}%
                       </div>
@@ -614,7 +617,7 @@ function TokoKatalogPageContent() {
 
                       {/* Price */}
                       <div className="flex items-center gap-2">
-                        {product.discount_price ? (
+                        {isDiscountActive(product) ? (
                           <>
                             <span className="text-xs font-bold text-zinc-400 line-through">
                               Rp. {product.price.toLocaleString('id-ID')}
@@ -854,7 +857,7 @@ function TokoKatalogPageContent() {
 
                 {/* Price Label */}
                 <div className="border-y border-[#e2ede7] py-4">
-                  {selectedProduct.discount_price ? (
+                  {isDiscountActive(selectedProduct) ? (
                     <div className="flex items-baseline gap-3">
                       <span className="text-sm font-bold text-zinc-400 line-through">
                         Rp. {selectedProduct.price.toLocaleString('id-ID')}
@@ -1161,7 +1164,7 @@ function TokoKatalogPageContent() {
                     className="bg-white rounded-3xl border border-[#e2ede7] overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col group relative cursor-pointer"
                   >
                     {/* Discount Badge */}
-                    {recommendation.discount_price && (
+                    {isDiscountActive(recommendation) && (
                       <div className="absolute top-3 left-3 z-20 px-2.5 py-1.5 rounded-full bg-rose-600 text-white font-extrabold text-[9px] uppercase tracking-wider shadow-md">
                         Diskon {Math.round(((recommendation.price - recommendation.discount_price) / recommendation.price) * 100)}%
                       </div>
@@ -1202,7 +1205,7 @@ function TokoKatalogPageContent() {
 
                       {/* Price */}
                       <div className="flex items-center gap-1.5">
-                        {recommendation.discount_price ? (
+                        {isDiscountActive(recommendation) ? (
                           <>
                             <span className="text-[10px] font-bold text-zinc-400 line-through">
                               Rp. {recommendation.price.toLocaleString('id-ID')}

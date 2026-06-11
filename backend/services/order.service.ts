@@ -13,6 +13,7 @@ import { decrementStockForOrder } from '@/backend/repositories/catalog.repositor
 import type { Order, OrderStatus } from '@/backend/types';
 import type { PaginatedResponse } from '@/backend/types/api';
 import { randomUUID } from 'crypto';
+import { getActivePrice } from '@/backend/utils/discount';
 
 /**
  * order.service.ts
@@ -68,7 +69,7 @@ export async function checkout(params: {
     items: items.map((item) => ({
       plant_id: item.plant_id,
       plant_name: item.plant!.name,
-      price_at_purchase: item.plant!.discount_price ?? item.plant!.price,
+      price_at_purchase: getActivePrice(item.plant!),
       quantity: item.quantity,
     })),
   });
@@ -86,7 +87,7 @@ export async function checkout(params: {
     items: items.map((item) => ({
       id: item.plant_id,
       name: item.plant!.name,
-      price: item.plant!.discount_price ?? item.plant!.price,
+      price: getActivePrice(item.plant!),
       quantity: item.quantity,
     })),
   });
@@ -153,7 +154,7 @@ export async function checkoutDemo(params: {
     items: items.map((item) => ({
       plant_id: item.plant_id,
       plant_name: item.plant!.name,
-      price_at_purchase: item.plant!.discount_price ?? item.plant!.price,
+      price_at_purchase: getActivePrice(item.plant!),
       quantity: item.quantity,
     })),
   });

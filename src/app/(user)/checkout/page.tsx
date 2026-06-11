@@ -10,6 +10,7 @@ import NextImage from 'next/image';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import { useRouter } from 'next/navigation';
+import { isDiscountActive, getActivePrice } from '@/backend/utils/discount';
 
 declare global {
   interface Window {
@@ -29,6 +30,8 @@ interface CartPlant {
   name: string;
   price: number;
   discount_price?: number | null;
+  discount_start_date?: string | null;
+  discount_end_date?: string | null;
   stock: number;
   unit: string;
   image_url: string | null;
@@ -353,10 +356,10 @@ export default function CheckoutPage() {
                       <div className="flex-1 min-w-0">
                         <p className="font-semibold text-sm truncate">{item.plant.name}</p>
                         <p className="text-xs text-brand-sage mt-0.5">
-                          {item.plant.discount_price ? (
+                          {isDiscountActive(item.plant) ? (
                             <span className="flex items-center gap-1">
                               <span className="line-through">{formatRupiah(item.plant.price)}</span>
-                              <span className="text-brand-emerald font-semibold">{formatRupiah(item.plant.discount_price)}</span>
+                              <span className="text-brand-emerald font-semibold">{formatRupiah(item.plant.discount_price!)}</span>
                             </span>
                           ) : (
                             formatRupiah(item.plant.price)
@@ -365,7 +368,7 @@ export default function CheckoutPage() {
                       </div>
                       <div className="text-right">
                         <p className="font-bold text-sm">
-                          {formatRupiah((item.plant.discount_price ?? item.plant.price) * item.quantity)}
+                          {formatRupiah(getActivePrice(item.plant) * item.quantity)}
                         </p>
                       </div>
                     </div>
